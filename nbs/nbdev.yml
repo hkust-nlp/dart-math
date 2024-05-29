@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "DART"
+  site-url: "https://hkust-nlp.github.io/dart-math"
+  description: "🎯DART-Math: Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving"
+  repo-branch: main
+  repo-url: "https://github.com/hkust-nlp/dart-math"
