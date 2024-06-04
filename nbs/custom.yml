@@ -1,0 +1,7 @@
+website:
+  page-navigation: true
+  sidebar:
+    style: "docked"
+    border: true
+  back-to-top-navigation: true
+  reader-mode: true

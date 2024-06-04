@@ -1,20 +1,35 @@
 project:
   type: website
+  output-dir: _docs
+  preview:
+    port: 3000
+    browser: false
 
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
+    toc-depth: 4
 
 website:
+  title: "🎯DART-Math"
+  site-url: "https://hkust-nlp.github.io/dart-math"
+  description: "🎯DART-Math: Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving"
   twitter-card: true
   open-graph: true
+  repo-branch: main
+  repo-url: "https://github.com/hkust-nlp/dart-math"
   repo-actions: [issue]
   navbar:
     background: primary
     search: true
+    right:
+      - icon: github
+        href: "https://github.com/hkust-nlp/dart-math"
   sidebar:
-    style: floating
+    style: "floating"
 
-metadata-files: [nbdev.yml, sidebar.yml]
+metadata-files:
+  - sidebar.yml
+  - custom.yml

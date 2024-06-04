@@ -1,0 +1,268 @@
+import json
+import logging
+import os
+
+import orjson
+
+try:
+    REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+except NameError:
+    REPO_ROOT = None
+
+PROJ_HOME: str = os.environ.get("PROJ_HOME", REPO_ROOT)
+
+
+IGNORE_IDX = -100
+
+
+# Prompt
+
+PROMPT_TEMPLATE_ID2DICT = {
+    "qa": dict(
+        id="qa",
+        sys_prompt="",
+        query_prompt="User:" + "\n",
+        # {query}
+        prompt_after_query="\n\n",
+        resp_prompt="Assistant:" + "\n",
+        prompt_before_resp="",
+        # {resp}
+        delim="\n\n",
+    ),
+    "alpaca": dict(
+        id="alpaca",
+        sys_prompt="Below is an instruction that describes a task. Write a response that appropriately completes the request."
+        + "\n\n",
+        query_prompt="### Instruction:" + "\n",
+        # {query}
+        prompt_after_query="\n\n",
+        resp_prompt="### Response:" + "\n",
+        prompt_before_resp="",
+        # {resp}
+        delim="\n\n",
+    ),
+    "wizardmath-cot": dict(
+        id="wizardmath-cot",
+        sys_prompt="Below is an instruction that describes a task. Write a response that appropriately completes the request."
+        + "\n\n",
+        query_prompt="### Instruction:" + "\n",
+        # {query}
+        prompt_after_query="\n\n",
+        resp_prompt="### Response:" + " ",
+        prompt_before_resp="Let's think step by step.",
+        # {resp}
+        delim="\n\n",
+    ),
+    "deepseekmath": dict(  # c.f. https://huggingface.co/deepseek-ai/deepseek-math-7b-instruct
+        id="deepseekmath",
+        sys_prompt="",
+        query_prompt="User:" + " ",
+        # {query}
+        prompt_after_query="\n"
+        + "Please reason step by step, and put your final answer within \\boxed{}."
+        + "\n\n",
+        resp_prompt="Assistant:" + " ",
+        prompt_before_resp="",
+        # {resp}
+        delim="<｜end▁of▁sentence｜>",
+    ),
+    "xwinmath": dict(
+        id="xwinmath",
+        sys_prompt="A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions."
+        + " ",
+        query_prompt="USER:" + " ",
+        # {query}
+        prompt_after_query=" "
+        + "Give your solution in detail. In the end, write your final answer in the format of 'The answer is: <ANSWER>.'. "
+        + " ",
+        resp_prompt="ASSISTANT:" + " ",
+        prompt_before_resp="",
+        # {resp}
+        delim="\n\n",
+    ),
+    "mammoth2-cot": dict(
+        id="mammoth2-cot",
+        sys_prompt="You are supposed to provide a solution to a given problem."
+        + "\n\n\n",
+        query_prompt="Problem:" + "\n",
+        # {query}
+        prompt_after_query="\n",
+        resp_prompt="Solution:" + " ",
+        prompt_before_resp="Let's think step by step." + "\n",
+        # {resp}
+        delim="\n\n",
+    ),
+}
+
+
+# %% ../nbs/99_utils.ipynb 0
+class PromptTemplate:
+    """Prompt template.
+    The complete prompt is in the form `{sys_prompt}{eg_qa1}{delim}{eg_qa2}{delim}...{delim}{eg_qaN}{delim}{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}`.
+    default: PROMPT_TEMPLATE_ID2DICT["alpaca"]
+
+    Parameters
+    ----------
+    id : str
+        Short name as ID of the prompt template, like "alpaca".
+    sys_prompt : str
+        System prompt as the beginning of the full prompt.
+    query_prompt : str
+        Simple prompt as delimiter between response and new query.
+    prompt_after_query : str
+        Prompt to append after the raw query, like "Let's think step by step.".
+    resp_prompt : str
+        Simple prompt as delimiter between query and response.
+    delim : str
+        Delimiter between query-response pairs.
+    """
+
+    def __init__(
+        self,
+        id: str = PROMPT_TEMPLATE_ID2DICT["alpaca"]["id"],
+        sys_prompt: str = PROMPT_TEMPLATE_ID2DICT["alpaca"]["sys_prompt"],
+        query_prompt: str = PROMPT_TEMPLATE_ID2DICT["alpaca"]["query_prompt"],
+        prompt_after_query: str = PROMPT_TEMPLATE_ID2DICT["alpaca"][
+            "prompt_after_query"
+        ],
+        resp_prompt: str = PROMPT_TEMPLATE_ID2DICT["alpaca"]["resp_prompt"],
+        prompt_before_resp: str = PROMPT_TEMPLATE_ID2DICT["alpaca"][
+            "prompt_before_resp"
+        ],
+        delim: str = PROMPT_TEMPLATE_ID2DICT["alpaca"]["delim"],
+    ):
+
+        self.id = id
+        self.sys_prompt = sys_prompt
+        self.query_prompt = query_prompt
+        self.prompt_after_query = prompt_after_query
+        self.resp_prompt = resp_prompt
+        self.prompt_before_resp = prompt_before_resp
+        self.delim = delim
+
+    @staticmethod
+    def load_from_id_or_path(prompt_template: str = "alpaca") -> "PromptTemplate":
+        """Load prompt template from ID or file path."""
+
+        if prompt_template in PROMPT_TEMPLATE_ID2DICT:  # ID
+            return PromptTemplate(**PROMPT_TEMPLATE_ID2DICT[prompt_template])
+
+        elif isinstance(prompt_template, str) and os.path.exists(prompt_template):
+            # File path
+            stem = os.path.splitext(os.path.basename(prompt_template))[0]
+            return PromptTemplate(id=stem, **load_json(prompt_template))
+        else:  # Default
+            logging.warning("Unknown prompt template, using the default 'alpaca'.")
+            return PROMPT_TEMPLATE_ID2DICT["alpaca"]
+
+    def make_prefix_prompt(self, query: str) -> str:
+        """Make a prefix prompt of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}`."""
+        return f"{self.query_prompt}{query}{self.prompt_after_query}{self.resp_prompt}{self.prompt_before_resp}"
+
+    def make_qa_pair(self, query: str, response: str) -> str:
+        """Make a QA pair of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}{response}`."""
+        return self.make_prefix_prompt(query) + response
+
+    def make_full_prompt(self, query: str, eg_qas: list[tuple[str, str]] = []) -> str:
+        """Make full prompt as input to the model.
+        Format: f"{sys_prompt}{eg_qa1}{eg_qa2}...{eg_qaN}{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}".
+        """
+        eg_qa_strs = [self.make_qa_pair(q, a) for q, a in eg_qas]
+        prefix_prompt = self.make_prefix_prompt(query)
+        return self.sys_prompt + self.delim.join(eg_qa_strs + [prefix_prompt])
+
+
+# Logging
+
+
+def init_logging(
+    log_path: str = None,
+    format: str = "[%(levelname)s] [%(asctime)s.%(msecs)d] [pid %(process)d] [%(pathname)s:%(lineno)d:%(funcName)s]\n%(message)s",  # Logging format
+    datefmt: str = "%Y-%m-%d %H:%M:%S",
+    level: int = logging.INFO,
+    force: bool = True,
+) -> None:
+    """Initialize logging configuration.
+
+    Parameters
+    ----------
+    log_path : str, default: None
+        File path to save log to.
+    format : str, default: "[%(levelname)s] [%(asctime)s.%(msecs)d] [pid %(process)d] [%(pathname)s:%(lineno)d:%(funcName)s]\n%(message)s"
+        Logging format.
+    datefmt : str, default: "%Y-%m-%d %H:%M:%S"
+        Logging date-time format.
+    level : int, default: logging.INFO
+        Logging level.
+    force : bool, default: True
+        Whether to force shutdown and restart of logging.
+    """
+    if force:
+        logging.shutdown()
+
+    logging.basicConfig(
+        format=format,
+        datefmt=datefmt,
+        level=level,
+        force=force,
+    )
+
+    if log_path is not None:
+        file_handler = logging.FileHandler(log_path, mode="w")
+        file_handler.setLevel(logging.INFO)  # Set the lowest level of log
+        file_handler.setFormatter(logging.Formatter(fmt=format, datefmt=datefmt))
+        logging.getLogger().addHandler(file_handler)
+
+    # Test
+    logging.info(f"log_path = {log_path}")
+
+
+# Path
+
+
+def get_pathname_from_name_or_path(name_or_path: str) -> str:
+    """Get the name suitable for file system from the HF-style `name_or_path`."""
+    realpath = os.path.realpath(name_or_path)
+
+    if not (name_or_path.startswith("/") or os.path.exists(realpath)):  # HF Hub
+        logging.debug(f"Loading {name_or_path} from HF Hub")
+        pathname = name_or_path
+    else:  # Local
+        logging.debug(f"Finding {realpath} locally")
+        if os.path.isfile(realpath):  # don't split with no extension
+            name_or_path = os.path.splitext(name_or_path)[0]
+        if "/checkpoint-" not in name_or_path:
+            pathname = os.path.basename(name_or_path)
+        else:
+            pathname = "/".join(name_or_path.split("/")[-2:])
+    pathname = pathname.replace("/", "-")
+
+    return pathname
+
+
+# IO
+
+
+def load_jsonl(fpath: str) -> list:
+    """Load JSONL file."""
+    with open(fpath, "r") as f:
+        return [orjson.loads(line) for line in f]
+
+
+def save_jsonl(data: list, fpath: str) -> None:
+    """Save JSONL file."""
+    with open(fpath, "w") as f:
+        for line in data:
+            f.write(orjson.dumps(line).decode() + "\n")
+
+
+def load_json(fpath: str) -> dict:
+    """Load JSON file."""
+    with open(fpath, "r") as f:
+        return orjson.loads(f.read())
+
+
+def save_json(data: dict, fpath: str, indent: int = 2) -> None:
+    """Save JSON file."""
+    with open(fpath, "w") as f:
+        json.dump(data, f, indent=indent)

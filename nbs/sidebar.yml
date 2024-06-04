@@ -1,0 +1,11 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_quick-start.ipynb
+      - 01_train.ipynb
+      - 02_gen.ipynb
+      - 03_data.ipynb
+      - 04_eval.ipynb
+      - 05_parallel.ipynb
+      - 99_utils.ipynb
