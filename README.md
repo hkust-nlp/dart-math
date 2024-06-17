@@ -170,6 +170,7 @@ For intended contributors, we recommend installing the package with the
 
 ``` shell
 pip install -e ".[dev]"
+pre-commit install
 ```
 
 ### 🔨 Training
@@ -207,10 +208,7 @@ node of 8 A100 GPUs, please run the following command:
 bash scripts/train-single-node.sh \
     --data_path "hkust-nlp/dart-math-hard" \
     --model_path "meta-llama/Meta-Llama-3-8B" \
-    --lr "5e-5" \
-    --bs 64 \
-    --n_grad_acc_steps 1 \
-    --n_epochs 1 \
+    --lr "5e-5" --bs 64 --n_grad_acc_steps 1 --n_epochs 1 \
     --gpu_ids "0,1,2,3,4,5,6,7" \
     --output_dir "models/dart-math-llama3-8b-prop2diff"
 ```
@@ -229,10 +227,7 @@ your enviroment and then run the following command:
 bash scripts/train-multi-node.sh \
     --data_path "hkust-nlp/dart-math-hard" \
     --model_path "meta-llama/Meta-Llama-3-70B" \
-    --lr "2e-5" \
-    --bs 64 \
-    --n_grad_acc_steps 1 \
-    --n_epochs 1 \
+    --lr "2e-5" --bs 64 --n_grad_acc_steps 1 --n_epochs 1 \
     --n_nodes 4 \
     --output_dir "models/dart-math-llama3-70b-prop2diff"
 ```
@@ -249,10 +244,7 @@ The off-the-shelf command to train `DART-Math-Llama3-70B-Uniform`
 bash scripts/train-multi-node.sh \
     --data_path "hkust-nlp/dart-math-uniform" \
     --model_path "meta-llama/Meta-Llama-3-70B" \
-    --lr "2e-5" \
-    --bs 64 \
-    --n_grad_acc_steps 1 \
-    --n_epochs 1 \
+    --lr "2e-5" --bs 64 --n_grad_acc_steps 1 --n_epochs 1 \
     --n_nodes 4 \
     --output_dir "models/dart-math-llama3-70b-prop2diff"
 ```
@@ -277,17 +269,14 @@ For example, to reproduce one pass of greedy decoding with
 0, please run the following command:
 
 ``` shell
-CUDA_VISIBLE_DEVICES="0" RAY_DEDUP_LOGS=0 python pipeline/gen.py \
+CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --gen_save_path "data/res/dart-math-mistral-7b-prop2diff.jsonl" \
     --model_name_or_path "hkust-nlp/dart-math-mistral-7b-prop2diff" \
     --datasets "math-test" "gsm8k-test" "mwpbench/college-math-test" "deepmind-mathematics" \
         "olympiadbench/OE_TO_maths_en_COMP" "theoremqa" \
-    --max_new_tokens 2048 \
-    --temperature 0 \
-    --prompt_template "auto" \
-    --n_shots -1 \
+    --max_new_tokens 2048 --temperature 0 --top_p 0.95 \
+    --prompt_template "cot" --n_shots -1 \
     --inf_seed -1 \
-    --do_eval \
     --max_n_trials 1
 ```
 
@@ -311,19 +300,14 @@ For example, to reproduce synthesis of `DART-Math-Uniform`, run the
 following command with different GPUs, please run the following command:
 
 ``` shell
-CUDA_VISIBLE_DEVICES="0" RAY_DEDUP_LOGS=0 python pipeline/gen.py \
+CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --gen_save_path "data/res/dart-math-uniform.jsonl" \
     --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
     --datasets "math-train" "gsm8k-train" \
-    --max_new_tokens 2048 \
-    --temperature 1.6 \
-    --top_p 0.95 \
-    --prompt_template "auto" \
-    --n_shots 0 \
+    --max_new_tokens 2048 --temperature 1.6 --top_p 0.95 \
+    --prompt_template "cot" --n_shots 0 \
     --inf_seed -1 \
-    --do_eval \
-    --min_n_corrects 40 \
-    --max_n_trials 0 # unlimited, should be killed manually
+    --min_n_corrects 40 --max_n_trials 0 # unlimited, should be killed manually
 ```
 
 ## [`dart-math` Package](https://hkust-nlp.github.io/dart-math): Efficient and Flexible Training & Inference & Evaluation Pipelines
@@ -336,7 +320,7 @@ website](https://hkust-nlp.github.io/dart-math/quick-start.html).
 
 Thanks to:
 
-- [`nbdev`](https://nbdev.fast.ai/) for genrating the [wonderful
+- [`nbdev`](https://nbdev.fast.ai/) for generating the [wonderful
   documentation website](https://hkust-nlp.github.io/dart-math),
 - [`stanford_alpaca`](https://github.com/tatsu-lab/stanford_alpaca) for
   reference code about training,
@@ -352,7 +336,7 @@ paper](https://tongyx361.github.io/assets/dart-math/paper-dart-math.pdf):
 
 ``` latex
 @article{tong2024dartmath,
-  author = {Yuxuan Tong, Xiwen Zhang, Rui Wang, Ruidong Wu, Junxian He },
+  author = {Yuxuan Tong, Xiwen Zhang, Rui Wang, Ruidong Wu, Junxian He},
   title = {DART-Math: Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving},
   year = {2024},
   publisher = {GitHub},
