@@ -250,8 +250,13 @@ def gen(
 
             for sample, ans, correct in zip(batch_new_samples, answers, corrects):
                 sample.ans = str(ans)
-                sample.correct = correct if isinstance(correct, bool) else str(correct)
-                sample.n_corrects += correct is True
+                sample.correct = correct if isinstance(correct, bool) else bool(correct)
+
+            sample_idx = 0
+            for dp, req_output in zip(batch_dps, batch_req_outputs):
+                for _ in req_output.outputs:
+                    dp.n_corrects += batch_new_samples[sample_idx].correct
+                    sample_idx += 1
 
         # Save responses batch incrementally
         if save_path is None or save_path == "":  # No saving, return
