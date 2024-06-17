@@ -674,5 +674,3 @@ def load_query_dps(
         dp.prompt_template = PromptTemplate.load_from_id_or_path(prompt_template)
 
     return all_query_dps
-
-    return all_query_dps
