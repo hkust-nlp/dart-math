@@ -132,9 +132,9 @@ parser.add_argument(
     help="(List of) maximum number of trials for each query. Non-positive means no limit.",
 )
 parser.add_argument(
-    "--do_eval",
+    "--gen_only",
     action="store_true",
-    help="Whether to evaluate the generated completions.",
+    help="Whether to only generate reponses and not evaluate the generated completions.",
 )
 parser.add_argument(
     "--min_n_corrects",
@@ -166,7 +166,7 @@ if args.temperature <= 1e-5:
     args.n_paths = 1
     args.top_p = 1
     logging.warning(
-        f"Temperature is too small. Setting temperautre = 0, n_paths = 1, top_p = 1 for vLLM."
+        "Temperature is too small. Setting temperautre = 0, n_paths = 1, top_p = 1 for vLLM."
     )
 
 sampling_params = SamplingParams(
@@ -209,7 +209,7 @@ gen(
     query_dps=query_dps,
     dp_stop_criteria=is_dp_dars_finished,
     resp_sample_cls=RespSampleVLLM,
-    batch_evaluator=(EvaluatorMathBatch() if args.do_eval else None),
+    batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None),
     save_path=args.gen_save_path,
     n_paths_per_save=args.save_gen_path_bs,
 )

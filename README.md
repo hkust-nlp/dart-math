@@ -288,9 +288,10 @@ For other general inference settings, please modify the command or
 directly modify the
 [script](https://github.com/hkust-nlp/dart-math/blob/main/pipeline/gen.py).
 
-You can also use the
+You can also add the `--gen_only` option to only generate responses
+without evaluation and use the
 [`EvaluatorMathBatch`](https://hkust-nlp.github.io/dart-math/eval.html#evaluatormathbatch)
-to evaluate existing generations.
+to evaluate the generations by yourself.
 
 ### 🗂 Data Synthesis
 
