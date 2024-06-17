@@ -187,6 +187,11 @@ def gen(
     list[RespSampleBase] | None
         The generated responses or `None` if saving.
     """
+    if save_path and "seed" not in save_path.lower():
+        seed = sampling_params.seed
+        prefix, ext = os.path.splitext(save_path)
+        save_path = f"{prefix}-seed{seed}{ext}"  # Add seed to the file name
+
     model_name_or_path = llm.llm_engine.model_config.model
 
     all_new_samples = []
@@ -253,9 +258,7 @@ def gen(
             all_new_samples += batch_new_samples
         else:  # Save to file
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            seed = sampling_params.seed
-            prefix, ext = os.path.splitext(save_path)
-            save_path = f"{prefix}-seed{seed}{ext}"  # Add seed to the file name
+
             with open(save_path, "a") as f:
                 for sample in batch_new_samples:
                     f.write(orjson.dumps(sample.to_dict()).decode() + "\n")
