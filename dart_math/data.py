@@ -540,18 +540,26 @@ def load_query_dps(
 
     if isinstance(dataset, str):
         dsets = [dataset]
-    else:
+    else:  # list
         dsets = dataset
 
     if isinstance(max_n_trials, int):
-        max_n_trials_list = [max_n_trials] * len(dsets)
-    else:
+        max_n_trials_list = [max_n_trials]
+    else:  # list
         max_n_trials_list = max_n_trials
+    if len(max_n_trials_list) == 1:
+        max_n_trials_list *= len(dsets)
 
     if isinstance(min_n_corrects, int):
-        min_n_corrects_list = [min_n_corrects] * len(dsets)
-    else:
+        min_n_corrects_list = [min_n_corrects]
+    else:  # list
         min_n_corrects_list = min_n_corrects
+    if len(min_n_corrects_list) == 1:
+        min_n_corrects_list *= len(dsets)
+
+    assert (
+        len(dsets) == len(max_n_trials_list) == len(min_n_corrects_list)
+    ), f"Argument length inconsistency: len(dsets)={len(dsets)}, len(max_n_trials_list)={len(max_n_trials_list)}, len(min_n_corrects_list)={len(min_n_corrects_list)}"
 
     for dataset, max_n_trials, min_n_corrects in zip(
         dsets, max_n_trials_list, min_n_corrects_list
@@ -580,10 +588,12 @@ def load_query_dps(
                         )
                     )
             elif dataset in ["gsm8k-test", "gsm8k-train"]:
-                dps = datasets.load_dataset("gsm8k", "main", split="test")
+                split = dataset.split("-")[-1]
+                dps = datasets.load_dataset("gsm8k", "main", split=split)
                 for dp in dps:
                     query_dps.append(
                         QueryDataPoint(
+                            dataset=dataset,
                             query=dp["question"],
                             ref_ans=dp["answer"].split("\n#### ")[-1],
                         )
