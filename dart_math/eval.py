@@ -2,6 +2,7 @@ import asyncio
 import multiprocessing as mp
 import queue
 import re
+import warnings
 from datetime import datetime
 from math import isclose
 from typing import Any, Callable
@@ -23,7 +24,10 @@ from sympy import (
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.latex.errors import LaTeXParsingError
 from sympy.parsing.sympy_parser import parse_expr
+from sympy.utilities.exceptions import SymPyDeprecationWarning
 from tqdm import tqdm
+
+warnings.filterwarnings("ignore", category=SymPyDeprecationWarning)
 
 from .data import RespSampleBase
 from .olympiadbench import OlympiadMathJudger
@@ -96,20 +100,32 @@ class EvaluatorBase:
 
     def extract_ans(self, resp_str: str) -> str:
         """Extract answer segment from complete `resp`."""
-        resp_str = self.clean_trailing(resp_str)
 
+        resp = self.extract_explicit_ans(resp_str)
+        if resp is None:  # use the last number
+            pattern = r"-?\d*\.?\d+"
+            resp = re.findall(pattern, resp_str.replace(",", ""))
+            if len(resp) >= 1:
+                resp = resp[-1]
+            else:
+                resp = ""
+
+        return resp
+
+    def extract_explicit_ans(self, resp_str: str) -> str:
+        resp_str = self.clean_trailing(resp_str)
+        # might be answer only
         if "herefore" in resp_str:
             resp_str = resp_str.split("herefore")[-1].strip()
+        if GSM8K_ANS_PREFIX in resp_str:
+            resp_str = resp_str.split(GSM8K_ANS_PREFIX)[-1].strip()
+        if PRM800K_ANS_PRRFIX in resp_str:
+            resp_str = resp_str.split(PRM800K_ANS_PRRFIX)[-1].strip()
 
         if "oxed{" in resp_str:
             resp = extract_boxed(resp_str)
         else:
-            # might be answer only
             resp = resp_str
-            if GSM8K_ANS_PREFIX in resp_str:
-                resp = resp_str.split(GSM8K_ANS_PREFIX)[-1].strip()
-            if PRM800K_ANS_PRRFIX in resp_str:
-                resp = resp_str.split(PRM800K_ANS_PRRFIX)[-1].strip()
 
             # should be answer only
             if "is the ans" in resp:
@@ -130,20 +146,11 @@ class EvaluatorBase:
                 bool_resp = norm_str2bool(resp.split("is ")[-1].strip())
                 if bool_resp is not None:
                     return str(bool_resp)
-
-            # if "```" in resp:
-            #     resp = extract_program_output(resp)
+            else:
+                return None
 
             if resp.startswith("$") and resp.endswith("$"):
                 resp = resp[1:-1]
-
-            if resp == resp_str:  # use the last number
-                pattern = r"-?\d*\.?\d+"
-                resp = re.findall(pattern, resp.replace(",", ""))
-                if len(resp) >= 1:
-                    resp = resp[-1]
-                else:
-                    resp = ""
 
         return resp
 

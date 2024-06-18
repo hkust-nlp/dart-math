@@ -485,7 +485,7 @@ def extract_ans_from_math_sol(string):
         assert retval[: len(left)] == left
         assert retval[-1] == "}"
         return retval[len(left) : -1]
-    except:
+    except Exception:
         return None
 
 
@@ -500,7 +500,7 @@ def extract_level_from_math_dp(dp) -> int:
     return level
 
 
-EVAL_DS_HOME = os.path.join(PROJ_HOME, "data/eval-dsets")
+DSET_HOME = os.path.join(PROJ_HOME, "data/dsets")
 
 
 def load_query_dps(
@@ -540,18 +540,26 @@ def load_query_dps(
 
     if isinstance(dataset, str):
         dsets = [dataset]
-    else:
+    else:  # list
         dsets = dataset
 
     if isinstance(max_n_trials, int):
-        max_n_trials_list = [max_n_trials] * len(dsets)
-    else:
+        max_n_trials_list = [max_n_trials]
+    else:  # list
         max_n_trials_list = max_n_trials
+    if len(max_n_trials_list) == 1:
+        max_n_trials_list *= len(dsets)
 
     if isinstance(min_n_corrects, int):
-        min_n_corrects_list = [min_n_corrects] * len(dsets)
-    else:
+        min_n_corrects_list = [min_n_corrects]
+    else:  # list
         min_n_corrects_list = min_n_corrects
+    if len(min_n_corrects_list) == 1:
+        min_n_corrects_list *= len(dsets)
+
+    assert (
+        len(dsets) == len(max_n_trials_list) == len(min_n_corrects_list)
+    ), f"Argument length inconsistency: len(dsets)={len(dsets)}, len(max_n_trials_list)={len(max_n_trials_list)}, len(min_n_corrects_list)={len(min_n_corrects_list)}"
 
     for dataset, max_n_trials, min_n_corrects in zip(
         dsets, max_n_trials_list, min_n_corrects_list
@@ -559,16 +567,16 @@ def load_query_dps(
 
         if os.path.exists(dataset):
             dataset = os.path.splitext(os.path.basename(dataset))[0]
-            samples = load_json(dataset)
-            query_dps = [
-                QueryDataPoint(dataset=dataset, **sample) for sample in samples
-            ]
+            dps = load_json(dataset)
+            query_dps = [QueryDataPoint(dataset=dataset, **dp) for dp in dps]
         else:
             query_dps = []
             # Preset datasets
             if dataset in ["math-test", "math-train"]:
                 split = dataset.split("-")[-1]
-                dps = datasets.load_dataset("hendrycks/competition_math", split=split)
+                dps = datasets.load_dataset(
+                    "hendrycks/competition_math", split=split, trust_remote_code=True
+                )
                 for dp in dps:
                     query_dps.append(
                         QueryDataPoint(
@@ -580,80 +588,110 @@ def load_query_dps(
                         )
                     )
             elif dataset in ["gsm8k-test", "gsm8k-train"]:
-                dps = datasets.load_dataset("gsm8k", "main", split="test")
+                dps = datasets.load_dataset(
+                    "gsm8k", "main", split="test", trust_remote_code=True
+                )
                 for dp in dps:
                     query_dps.append(
                         QueryDataPoint(
+                            dataset=dataset,
                             query=dp["question"],
                             ref_ans=dp["answer"].split("\n#### ")[-1],
                         )
                     )
-            elif dataset == "mwpbench/college-math-test":
+            elif dataset in [
+                "mwpbench/college-math-test",
+                "mwpbench/college-math-train",
+                "mwpbench/fresh-gaokao-math-2023",
+                "mwpbench/gaokaobench",
+            ]:
                 # Extracted from https://github.com/microsoft/unilm/blob/master/mathscale/MWPBench/data/full_test.json
-                mwpbench_fpath = os.path.join(EVAL_DS_HOME, f"{dataset}.jsonl")
-                samples = load_jsonl(mwpbench_fpath)
-                for sample in samples:
+                mwpbench_fpath = os.path.join(DSET_HOME, f"{dataset}.jsonl")
+                dps = load_jsonl(mwpbench_fpath)
+                for dp in dps:
                     query_dps.append(
                         QueryDataPoint(
                             dataset=dataset,
-                            query=sample["question"],
-                            ref_ans=sample["answer"],
-                            source=sample["data_source"].split(".")[-1],
-                            domain=sample["data_topic"].split(".")[-1],
+                            query=dp["question"],
+                            ref_ans=dp["answer"],
+                            source=dp["data_source"].split(".")[-1],
+                            domain=dp["data_topic"].split(".")[-1],
                         )
                     )
             elif dataset == "deepmind-mathematics":
-                dmmath_fpath = os.path.join(EVAL_DS_HOME, "deepmind-mathematics.json")
-                samples = load_json(dmmath_fpath)
-                for sample in samples:
+                dmmath_fpath = os.path.join(DSET_HOME, "deepmind-mathematics.json")
+                dps = load_json(dmmath_fpath)
+                for dp in dps:
                     query_dps.append(
                         QueryDataPoint(
                             dataset=dataset,
-                            query=sample["question"],
-                            ref_ans=sample["answer"],
+                            query=dp["question"],
+                            ref_ans=dp["answer"],
                         )
                     )
             # e.g. olympiadbench/OE_TO_maths_en_COMP
             elif dataset.startswith("olympiadbench"):
-                obmath_fpath = os.path.join(EVAL_DS_HOME, f"{dataset}.json")
-                samples = load_json(obmath_fpath)
-
+                obmath_fpath = os.path.join(DSET_HOME, f"{dataset}.json")
+                dps = load_json(obmath_fpath)
                 subset_name = dataset.split("/")[-1]
-                for sample in samples:
+                for dp in dps:
                     query_dps.append(
                         QueryDataPoint(
                             dataset=dataset,
-                            query=make_query(sample, subset_name),
-                            ref_ans=sample["final_answer"][0],
-                            abs_tol=sample["error"],
-                            domain=sample["subfield"],
+                            query=make_query(dp, subset_name),
+                            ref_ans=dp["final_answer"][0],
+                            abs_tol=dp["error"],
+                            domain=dp["subfield"],
                         )
                     )
             elif dataset == "theoremqa":
-                theoremqa_fpath = os.path.join(EVAL_DS_HOME, "theoremqa.json")
-                samples = load_json(theoremqa_fpath)
-                for sample in samples:
-
-                    if isinstance(sample["Answer"], bool):
-                        ref_ans = [str(sample["Answer"]), None]
-                    elif isinstance(sample["Answer"], (list, int, float)):
-                        ref_ans = [str(sample["Answer"]), sample["Answer"]]
+                theoremqa_fpath = os.path.join(DSET_HOME, "theoremqa.json")
+                dps = load_json(theoremqa_fpath)
+                for dp in dps:
+                    if isinstance(dp["Answer"], bool):
+                        ref_ans = [str(dp["Answer"]), None]
+                    elif isinstance(dp["Answer"], (list, int, float)):
+                        ref_ans = [str(dp["Answer"]), dp["Answer"]]
                     else:
-                        ref_ans = [str(sample["Answer"]), None]
-
+                        ref_ans = [str(dp["Answer"]), None]
                     query_dps.append(
                         QueryDataPoint(
                             dataset=dataset,
-                            query=sample["Question"],
+                            query=dp["Question"],
                             ref_ans=ref_ans,
+                        )
+                    )
+            elif dataset == "odyssey-math":
+                odyssey_fpath = os.path.join(DSET_HOME, "odyssey-math.jsonl")
+                dps = load_jsonl(odyssey_fpath)
+                for dp in dps:
+                    dp = list(dp.values())[0]
+                    query_dps.append(
+                        QueryDataPoint(
+                            dataset=dataset,
+                            query=dp["question"],
+                            ref_ans=dp["answer"],
+                            domain=dp["label"],
+                            level=dp["level"],
+                        )
+                    )
+            elif dataset == "aops":
+                aops_fpath = os.path.join(DSET_HOME, "aops.jsonl")
+                dps = load_jsonl(aops_fpath)
+                for dp in dps:
+                    query_dps.append(
+                        QueryDataPoint(
+                            dataset=dataset,
+                            query=dp["problem"],
+                            ref_ans=dp["answer"],
+                            id=dp["link"],
                         )
                     )
             else:
                 raise ValueError(f"Dataset {dataset} is not properly specified ...")
-            for dp in query_dps:
-                dp.max_n_trials = max_n_trials
-                dp.min_n_corrects = min_n_corrects
-
+        for dp in query_dps:
+            dp.max_n_trials = max_n_trials
+            dp.min_n_corrects = min_n_corrects
         all_query_dps += query_dps
 
     for dp in all_query_dps:

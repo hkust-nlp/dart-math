@@ -3,64 +3,19 @@ import os
 from typing import Callable
 
 import orjson
-from vllm import LLM, SamplingParams
+from pebble import ProcessPool
+from tqdm import tqdm
+from vllm import LLM, RequestOutput, SamplingParams
 
 from .data import DS_ID2N_SHOTS, ICL_EGS, QueryDataPoint, RespSampleBase, RespSampleVLLM
 from .eval import EvaluatorBatchBase
-from .utils import PromptTemplate, get_pathname_from_name_or_path
-
-BASE_MODEL_IDS = [
-    "deepseek-ai--deepseek-math-7b-base",
-    "mistralai--Mistral-7B-v0.1",
-    "meta-llama--Llama-2-7b-hf",
-    "meta-llama--Llama-2-13b-hf",
-    "meta-llama--Llama-2-70b-hf",
-    "meta-llama--Meta-Llama-3-8B",
-    "meta-llama--Meta-Llama-3-70B",
-    "EleutherAI--llemma_7b",
-    "EleutherAI--llemma_34b",
-    "QWen--QWen-1.5-72B",
-]
-
-DEEPSEEK_INSTR_MODEL_IDS = [
-    "deepseek-ai/deepseek-math-7b-instruct",
-    "deepseek-ai/deepseek-math-7b-rl",
-]
-
-MATH_SHEPHERD_MODEL_IDS = [
-    "peiyi9979/mistral-7b-sft",
-    "peiyi9979/math-shepherd-mistral-7b-rl",
-]
-
-# Data Preprocessing
-
+from .exec import CodeExecCfg, exec_cells
+from .parallel import seq_consume_preset_queue_w_each_timeout
+from .utils import BASE_MODEL_IDS, PromptTemplate, get_pathname_from_name_or_path
 
 # %% ../nbs/02_gen.ipynb 0
-def get_prompt_template4model(
-    model_name_or_path: str,  # HF ID or path to the model.
-) -> PromptTemplate:
-    # Get the prompt template suitable for the model.
-    if model_name_or_path in BASE_MODEL_IDS + MATH_SHEPHERD_MODEL_IDS:
-        prompt_template = "qa"
-    elif model_name_or_path.startswith("dart-math"):
-        prompt_template = "alpaca"
-    elif model_name_or_path in DEEPSEEK_INSTR_MODEL_IDS:
-        prompt_template = "deepseekmath"
-    elif model_name_or_path.startswith("Xwin-LM/Xwin-Math"):
-        prompt_template = "xwinmath"
-    elif model_name_or_path.startswith("TIGER-Lab--MAmmoTH2"):
-        prompt_template = "mammoth2-cot"
-    else:  # default
-        prompt_template = "alpaca"
 
-    prompt_template = PromptTemplate.load_from_id_or_path(prompt_template)
-    if "MMIQC" in model_name_or_path:
-        prompt_template.prompt_before_resp = (
-            'Please solve the following problem and put your answer at the end with "The answer is: ".'
-            + " "
-        )
-
-    return prompt_template
+# Data Preprocessing
 
 
 def get_n_shots(
@@ -102,10 +57,25 @@ def get_icl_egs(
 # Stopping criteria
 
 
-def is_dp_dars_finished(dp):
-    return (dp.max_n_trials > 0 and dp.n_trials >= dp.max_n_trials) or (
-        dp.min_n_corrects > 0 and dp.n_corrects > dp.min_n_corrects
-    )
+def is_dp_dars_finished(dp: QueryDataPoint) -> str | None:
+    """Judge whether DARS for a data point is finished and return the stopping reason or `None` if not finished.
+
+    Parameters
+    ----------
+    dp : QueryDataPoint
+        Query data point having at least the following attributes: `max_n_trials` (and `n_trials`), `min_n_corrects` (and `n_corrects`).
+
+    Returns
+    -------
+    str | None
+        The stopping reason or `None` if not finished.
+    """
+    if dp.max_n_trials > 0 and dp.n_trials >= dp.max_n_trials:
+        return "max_n_trials"
+    elif dp.min_n_corrects > 0 and dp.n_corrects > dp.min_n_corrects:
+        return "max_n_corrects"
+    else:
+        return None
 
 
 # IO
@@ -149,118 +119,302 @@ def get_res_fname(
 # Pipeline
 
 
-def gen(
-    llm: LLM,
-    sampling_params: SamplingParams,
-    query_dps: list[QueryDataPoint],
-    dp_stop_criteria: Callable[[QueryDataPoint], bool],
-    resp_sample_cls: type = RespSampleVLLM,
-    batch_evaluator: EvaluatorBatchBase | None = None,
-    save_path: str | None = "auto",
-    n_paths_per_save: int | None = None,
-) -> list[RespSampleBase] | None:
-    """Generate responses on the given query data points with specified stopping criteria.
+class Generator:
+    """Generator with various features such as stopping criteria and code execution.
 
     Parameters
     ----------
     llm : LLM
         The `vllm` model to generate with (or other objects with compatible `generate` interfaces).
     sampling_params : SamplingParams
-        The sampling parameters for the `llm` (or other objects with compatible interfaces). NOTE: `n > 1` might cause bugs in `vllm` for now (0.4.2).
-    query_dps : list[QueryDataPoint]
-        The query-level data points to generate responses on.
-    dp_stop_criteria : Callable[[QueryDataPoint], bool]
-        The function to check if a query data point should be stopped generating on.
-    resp_sample_cls : type, default: RespSampleVLLM
-        The class to collect the generated response as.
+        The sampling parameters for the `llm` (or other objects with compatible interfaces).
+        NOTE: `n > 1` might cause bugs in `vllm` for now (0.4.2).
     batch_evaluator : EvaluatorBatchBase | None, default: None
         The batch evaluator to evaluate the generated responses. `None` means no evaluation.
-    save_path : str | None, default: "auto"
-        Path to save the generated reponses to.
-        `"tag:{tag}"` means saving to `"dart-math/data/gen/{gen-info}-sample-{tag}-seed{seed}.jsonl"`.
-        `None` or `""` means no saving.
-    n_paths_per_save : int | None, default: None
-        Response-level samples or `None` if saving.
-
-    Returns
-    -------
-    list[RespSampleBase] | None
-        The generated responses or `None` if saving.
+    resp_sample_cls : type, default: RespSampleVLLM
+        The class to collect the generated response as.
+    code_exec_cfg : str | None, default: None
+        The tool using configuration.
     """
-    model_name_or_path = llm.llm_engine.model_config.model
 
-    all_new_samples = []
-    sched_finished = False
-    while not sched_finished:  # Loop on batches
-        batch_dps = []
-        batch_input_strs = []
-
-        # Collect input strings batch
-        batch_collected = False
-        while not (batch_collected or sched_finished):
-            # Loop on `query_samples` repeatedly
-            sched_finished = True  # Speculate that all data points are finished
-            for dp in query_dps:  # Loop on data points
-                if dp_stop_criteria(dp):
-                    continue  # Skip finished data point
-
-                # Still have data points to generate
-                sched_finished = False
-                dp.n_trials += 1  # For `dp_stop_criteria`
-                batch_dps.append(dp)
-
-                # Make the input string
-                icl_egs = get_icl_egs(dp.dataset, dp.n_shots, model_name_or_path)
-
-                input_str = dp.prompt_template.make_full_prompt(dp.query, icl_egs)
-                batch_input_strs.append(input_str.strip())
-                # NOTE: `.strip()` is important for SFT/RL models and also acceptable for both 0-shot on SFT/RL models and few-shot on base models
-
-                # Check if batch is full
-                batch_collected = (
-                    n_paths_per_save is not None
-                    and n_paths_per_save > 0
-                    and len(batch_input_strs) * sampling_params.n >= n_paths_per_save
-                )
-                if batch_collected or sched_finished:
-                    break
-
-        # rand_idx = random.choice(range(len(batch_input_strs)))
-        logging.info(f"batch_input_strs[{0}]: {batch_input_strs[0]}")
-
-        # Generate responses batch
-        batch_req_outputs = llm.generate(batch_input_strs, sampling_params)
-        logging.info(
-            f"batch_req_outputs[0].outputs[0]: {batch_req_outputs[0].outputs[0]}"
+    def __init__(
+        self,
+        llm: LLM,
+        sampling_params: SamplingParams,
+        resp_sample_cls: type = RespSampleVLLM,
+        batch_evaluator: EvaluatorBatchBase | None = None,
+        code_exec_cfg: CodeExecCfg | str | None = None,
+    ):
+        self.llm = llm
+        self.sampling_params = sampling_params
+        self.resp_sample_cls = resp_sample_cls
+        self.batch_evaluator = batch_evaluator
+        self.code_exec_cfg = (
+            code_exec_cfg
+            if isinstance(code_exec_cfg, CodeExecCfg)
+            else CodeExecCfg.load_from_id_or_path(code_exec_cfg)
         )
 
-        # Collect outputs batch
-        batch_new_samples = []
-        for dp, req_output in zip(batch_dps, batch_req_outputs):
-            for gen_path in req_output.outputs:
-                batch_new_samples.append(resp_sample_cls.collect(dp, gen_path))
+        if (
+            self.code_exec_cfg is not None
+            and self.code_exec_cfg.output_begin.strip() not in self.sampling_params.stop
+        ):
+            self.sampling_params.stop.append(self.code_exec_cfg.output_begin.strip())
 
-        if batch_evaluator is not None:
-            answers, corrects = batch_evaluator.batch_eval(batch_new_samples)
+    def gen_pure(
+        self,
+        input_strs: list[str],
+    ) -> list[RequestOutput]:
+        """Code execution only supports one-path generation for now.
 
-            for sample, ans, correct in zip(batch_new_samples, answers, corrects):
-                sample.ans = str(ans)
-                sample.correct = correct if isinstance(correct, bool) else str(correct)
-                sample.n_corrects += correct is True
+        Parameters
+        ----------
+        input_strs : list[str]
+            The input strings as direct input to the model.
 
-        # Save responses batch incrementally
-        if save_path is None or save_path == "":  # No saving, return
-            all_new_samples += batch_new_samples
-        else:  # Save to file
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            seed = sampling_params.seed
+        Returns
+        -------
+        list[RequestOutput]
+            The generated responses grouped by input strings.
+        """
+        # rand_idx = random.choice(range(len(batch_input_strs)))
+        logging.info(f"sampling_params: {self.sampling_params}")
+        logging.info(f"input_strs[0]: {input_strs[0]}")
+        if self.code_exec_cfg is None:
+            req_outputs = self.llm.generate(input_strs, self.sampling_params)
+        else:
+            # With code execution
+            assert (
+                self.sampling_params.n == 1
+            ), "Support one-path generation only for now."
+            req_outputs = [None] * len(input_strs)
+            remain_ids = list(range(len(input_strs)))
+            while True:
+                remain_input_strs = [
+                    input_strs[i]
+                    + (
+                        req_outputs[i].outputs[0].text
+                        if req_outputs[i] is not None
+                        else ""
+                    )
+                    for i in remain_ids
+                ]
+                remain_req_outputs = self.llm.generate(
+                    remain_input_strs, self.sampling_params
+                )
+                for i, req_output in zip(remain_ids, remain_req_outputs):
+                    if req_outputs[i] is None:
+                        req_output.outputs[0].cumulative_logprob = [
+                            req_output.outputs[0].cumulative_logprob
+                        ]
+                        req_outputs[i] = req_output
+                    else:  # Align with RespSampleVLLM.collect
+                        gen_path = req_outputs[i].outputs[0]
+                        new_gen_path = req_output.outputs[0]
+                        gen_path.text += new_gen_path.text
+                        gen_path.token_ids += new_gen_path.token_ids
+                        gen_path.finish_reason = new_gen_path.finish_reason
+                        gen_path.stop_reason = new_gen_path.stop_reason
+                        # Non-sense if simply adding up
+                        gen_path.cumulative_logprob.append(
+                            new_gen_path.cumulative_logprob
+                        )
+                new_remain_ids = []
+                for i in remain_ids:
+                    req_output = req_outputs[i]
+                    gen_path = req_output.outputs[0]
+                    if self.code_exec_cfg.no_cells_todo(gen_path.text) or (
+                        self.batch_evaluator.extract_explicit_ans(gen_path.text)
+                        is not None
+                    ):  # Stop
+                        continue
+                    if (
+                        gen_path.text.count(self.code_exec_cfg.output_begin)
+                        >= self.code_exec_cfg.n_call_max
+                    ):
+                        req_output.finish_reason = "call"
+                        continue
+                    if (
+                        len(gen_path.token_ids)  # All output tokens
+                        > self.sampling_params.max_tokens
+                    ):
+                        req_output.finish_reason = "length"
+                        continue
+                    new_remain_ids.append(i)
+
+                remain_ids = new_remain_ids
+                logging.info(f"len(remain_ids): {len(remain_ids)}")
+                if len(remain_ids) == 0:
+                    break
+                cells_list = [
+                    self.code_exec_cfg.extract_cells(req_outputs[i].outputs[0].text)
+                    for i in remain_ids
+                ]
+                logging.info(f"cells_list: (#{len(cells_list)})[{cells_list[0]},...]")
+                assert len(cells_list) == len(remain_ids), "Mismatched cells and ids"
+
+                results = []
+                with ProcessPool(max_workers=4) as pool:
+                    iterator = pool.map(
+                        exec_cells, cells_list, timeout=self.code_exec_cfg.timeout
+                    ).result()
+                    pbar = tqdm(total=len(cells_list), desc="Executing")
+                    while True:
+                        try:
+                            result = next(iterator)
+                            results.append(result)
+                        except StopIteration:
+                            break
+                        except Exception as e:
+                            results.append(e)
+                        pbar.update(1)
+                    pbar.close()
+
+                for idx, exec_res in enumerate(results):
+                    if isinstance(exec_res, tuple):
+                        stdout, stderr = exec_res
+                        output = stdout if stdout else stderr
+                    else:  # e.g. `asyncio.TimeoutError`
+                        output = str(exec_res)
+                    if len(output) > sum(self.code_exec_cfg.trunc_len):
+                        len_begin, len_end = self.code_exec_cfg.trunc_len
+                        output = (
+                            output[:len_begin]
+                            + self.code_exec_cfg.elipsis
+                            + output[-len_end:]
+                        )
+                    req_id = remain_ids[idx]
+                    req_output = req_outputs[req_id]
+                    req_output.outputs[0].text += (
+                        self.code_exec_cfg.wrap_output(output) + "\n\n"
+                    )
+
+        logging.info(f"req_outputs[0].outputs[0]: {req_outputs[0].outputs[0]}")
+        return req_outputs
+
+    def gen(
+        self,
+        query_dps: list[QueryDataPoint],
+        dp_stop_criteria: Callable[[QueryDataPoint], bool],
+        save_path: str | None = None,
+        n_paths_per_save: int | None = None,
+    ) -> list[RespSampleBase] | None:
+        """Generate responses on the given query data points with specified stopping criteria.
+
+        Parameters
+        ----------
+
+        query_dps : list[QueryDataPoint]
+            The query-level data points to generate responses on.
+        dp_stop_criteria : Callable[[QueryDataPoint], bool]
+            The function to check if a query data point should be stopped generating on.
+        save_path : str | None, default: "auto"
+            Path to save the generated reponses to. `None` or `""` means no saving.
+        n_paths_per_save : int | None, default: None
+            Response-level samples or `None` if saving.
+
+
+        Returns
+        -------
+        list[RespSampleBase] | None
+            The generated responses or `None` if saving.
+        """
+        if save_path and "seed" not in save_path.lower():
+            seed = self.sampling_params.seed
             prefix, ext = os.path.splitext(save_path)
             save_path = f"{prefix}-seed{seed}{ext}"  # Add seed to the file name
-            with open(save_path, "a") as f:
-                for sample in batch_new_samples:
-                    f.write(orjson.dumps(sample.to_dict()).decode() + "\n")
 
-    if save_path is None:
-        return all_new_samples
-    else:
-        return None
+        model_name_or_path = self.llm.llm_engine.model_config.model
+
+        all_new_samples = []
+        sched_finished = False
+
+        sample_cnt = 0
+        achieve_cnt = 0
+        quit_cnt = 0
+
+        while not sched_finished:  # Loop on batches
+            batch_dps = []
+            batch_input_strs = []
+
+            # Collect input strings batch
+            batch_collected = False
+            while not (batch_collected or sched_finished):
+                # Loop on `query_samples` repeatedly
+                sched_finished = True  # Speculate that all data points are finished
+                for dp in query_dps:  # Loop on data points
+                    stop_reason = dp_stop_criteria(dp)
+                    if stop_reason is not None:
+                        quit_cnt += stop_reason == "max_n_trials"
+                        achieve_cnt += stop_reason == "max_n_corrects"
+                        continue  # Skip finished data point
+
+                    # Still have data points to generate
+                    sched_finished = False
+                    dp.n_trials += 1  # For `dp_stop_criteria`
+                    batch_dps.append(dp)
+
+                    # Make the input string
+                    icl_egs = get_icl_egs(dp.dataset, dp.n_shots, model_name_or_path)
+
+                    input_str = dp.prompt_template.make_full_prompt(dp.query, icl_egs)
+                    batch_input_strs.append(input_str.strip())
+                    # NOTE: `.strip()` is important for SFT/RL models and also acceptable for both 0-shot on SFT/RL models and few-shot on base models
+
+                    # Check if batch is full
+                    batch_collected = (
+                        n_paths_per_save is not None
+                        and n_paths_per_save > 0
+                        and len(batch_input_strs) * self.sampling_params.n
+                        >= n_paths_per_save
+                    )
+                    if batch_collected or sched_finished:
+                        break
+
+            # Generate responses batch
+            batch_req_outputs = self.gen_pure(batch_input_strs)
+
+            # Collect outputs batch
+            batch_new_samples = []
+            for dp, req_output in zip(batch_dps, batch_req_outputs):
+                for gen_path in req_output.outputs:
+                    batch_new_samples.append(self.resp_sample_cls.collect(dp, gen_path))
+
+            if self.batch_evaluator is not None:
+                answers, corrects = self.batch_evaluator.batch_eval(batch_new_samples)
+
+                for sample, ans, correct in zip(batch_new_samples, answers, corrects):
+                    sample.ans = str(ans)
+                    sample.correct = (
+                        correct if isinstance(correct, bool) else bool(correct)
+                    )
+
+                sample_idx = 0
+                for dp, req_output in zip(batch_dps, batch_req_outputs):
+                    for _ in req_output.outputs:
+                        dp.n_corrects += batch_new_samples[sample_idx].correct
+                        sample_idx += 1
+
+            # Save responses batch incrementally
+            if save_path is None or save_path == "":  # No saving, return
+                all_new_samples += batch_new_samples
+            else:  # Save to file
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+                with open(save_path, "a") as f:
+                    for sample in batch_new_samples:
+                        f.write(orjson.dumps(sample.to_dict()).decode() + "\n")
+
+                sample_cnt += len(batch_new_samples)
+
+            n_all_dps = len(query_dps)
+            logging.info(
+                f"""# of new samples: {sample_cnt}
+                Rate achieving `max_n_corrects` : {achieve_cnt / n_all_dps:.2%} (= {achieve_cnt}/{n_all_dps})
+                Rate running out `max_n_trials` : {quit_cnt / n_all_dps:.2%} (= {quit_cnt}/{n_all_dps})"""
+            )
+
+        if save_path is None:
+            return all_new_samples
+        else:
+            return None

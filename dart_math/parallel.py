@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import multiprocessing as mp
 import queue
 from typing import Any, Awaitable, Callable
@@ -19,8 +20,8 @@ def async_wrap(func: Callable) -> Awaitable:
 
 
 async def seq_consume_preset_queue_w_each_timeout(
-    consumer: Awaitable,
-    idxed_kwargs_queue: queue.SimpleQueue | type(mp.SimpleQueue()),
+    consumer: Callable,
+    idxed_kwargs_queue: queue.SimpleQueue | type(mp.SimpleQueue()) | list,
     timeout: int = 5,
     pbar: tqdm = None,
 ) -> list[tuple[int, Any]]:
@@ -45,15 +46,27 @@ async def seq_consume_preset_queue_w_each_timeout(
     list[tuple[int, Any]]
         Indexed return values, comprising elements like `(idx, retval)`.
     """
+    if not inspect.isawaitable(consumer):
+        consumer = async_wrap(consumer)
+
+    if isinstance(idxed_kwargs_queue, list):
+        idx_kwargs_list = idxed_kwargs_queue
+        idxed_kwargs_queue = queue.SimpleQueue()
+        for idx_kwargs in idx_kwargs_list:
+            idxed_kwargs_queue.put(idx_kwargs)
+        idxed_kwargs_queue.put(None)
+
     idxed_retvals = []
     while True:
         idxed_kwargs = idxed_kwargs_queue.get()
         if idxed_kwargs is None:
             break
         idx, kwargs = idxed_kwargs
+        task = asyncio.create_task(consumer(**kwargs))
         try:
-            retval = await asyncio.wait_for(async_wrap(consumer)(**kwargs), timeout)
+            retval = await asyncio.wait_for(task, timeout)
         except Exception as e:  # e.g. `asyncio.TimeoutError`
+            task.cancel()
             retval = e
         idxed_retvals.append((idx, retval))
         if pbar is not None:

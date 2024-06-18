@@ -6,7 +6,8 @@ vllm
 sympy==1.12 # Ensuring ompatibility with antlr4-python3-runtime=4.11
 antlr4-python3-runtime==4.11.1 # NOTE: must be 4.11 for sympy !!!
 orjson
-# for flash-attn build
+# For flash-attn build
 einops
 packaging
 ninja
+pebble

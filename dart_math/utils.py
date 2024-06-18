@@ -14,6 +14,30 @@ PROJ_HOME: str = os.environ.get("PROJ_HOME", REPO_ROOT)
 
 IGNORE_IDX = -100
 
+BASE_MODEL_IDS = [
+    "deepseek-ai--deepseek-math-7b-base",
+    "mistralai--Mistral-7B-v0.1",
+    "meta-llama--Llama-2-7b-hf",
+    "meta-llama--Llama-2-13b-hf",
+    "meta-llama--Llama-2-70b-hf",
+    "meta-llama--Meta-Llama-3-8B",
+    "meta-llama--Meta-Llama-3-70B",
+    "EleutherAI--llemma_7b",
+    "EleutherAI--llemma_34b",
+    "QWen--QWen-1.5-72B",
+]
+
+DEEPSEEK_INSTR_MODEL_IDS = [
+    "deepseek-ai/deepseek-math-7b-instruct",
+    "deepseek-ai/deepseek-math-7b-rl",
+]
+
+
+MATH_SHEPHERD_MODEL_IDS = [
+    "peiyi9979/mistral-7b-sft",
+    "peiyi9979/math-shepherd-mistral-7b-rl",
+]
+
 
 # Prompt
 
@@ -61,6 +85,21 @@ PROMPT_TEMPLATE_ID2DICT = {
         prompt_after_query="\n"
         + "Please reason step by step, and put your final answer within \\boxed{}."
         + "\n\n",
+        resp_prompt="Assistant:" + " ",
+        prompt_before_resp="",
+        # {resp}
+        delim="<｜end▁of▁sentence｜>",
+    ),
+    "deepseekmath-tool": dict(  # c.f. https://github.com/deepseek-ai/DeepSeek-Math/tree/main/evaluation#3-evaluation
+        id="deepseekmath-tool",
+        sys_prompt="",
+        query_prompt="User:" + " ",
+        # {query}
+        prompt_after_query=(
+            "\n"
+            + "Please integrate natural language reasoning with programs to solve the problem above, and put your final answer within \\boxed{}."
+            + "\n\n"
+        ),
         resp_prompt="Assistant:" + " ",
         prompt_before_resp="",
         # {resp}
@@ -143,17 +182,15 @@ class PromptTemplate:
     @staticmethod
     def load_from_id_or_path(prompt_template: str = "alpaca") -> "PromptTemplate":
         """Load prompt template from ID or file path."""
-
         if prompt_template in PROMPT_TEMPLATE_ID2DICT:  # ID
             return PromptTemplate(**PROMPT_TEMPLATE_ID2DICT[prompt_template])
-
         elif isinstance(prompt_template, str) and os.path.exists(prompt_template):
             # File path
             stem = os.path.splitext(os.path.basename(prompt_template))[0]
             return PromptTemplate(id=stem, **load_json(prompt_template))
         else:  # Default
             logging.warning("Unknown prompt template, using the default 'alpaca'.")
-            return PROMPT_TEMPLATE_ID2DICT["alpaca"]
+            return PromptTemplate(**PROMPT_TEMPLATE_ID2DICT["alpaca"])
 
     def make_prefix_prompt(self, query: str) -> str:
         """Make a prefix prompt of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}`."""
@@ -170,6 +207,57 @@ class PromptTemplate:
         eg_qa_strs = [self.make_qa_pair(q, a) for q, a in eg_qas]
         prefix_prompt = self.make_prefix_prompt(query)
         return self.sys_prompt + self.delim.join(eg_qa_strs + [prefix_prompt])
+
+    @staticmethod
+    def get_prompt_template_from_prompt_type_and_model(
+        prompt_type: str,
+        model_name_or_path: str,
+    ) -> "PromptTemplate":
+        """Get the prompt template suitable for the model.
+
+        Parameters
+        ----------
+        prompt_type : str
+            Prompt type, like "cot" or "tool".
+        model_name_or_path : str
+            HF ID or path to the model.
+
+        Returns
+        -------
+        PromptTemplate
+            The prompt template suitable for the model.
+        """
+        prompt_template = None
+        if prompt_type == "cot":
+            if model_name_or_path in BASE_MODEL_IDS + MATH_SHEPHERD_MODEL_IDS:
+                prompt_template = "qa"
+            elif model_name_or_path.startswith("dart-math"):
+                prompt_template = "alpaca"
+            elif model_name_or_path in DEEPSEEK_INSTR_MODEL_IDS:
+                prompt_template = "deepseekmath"
+            elif model_name_or_path.startswith("Xwin-LM/Xwin-Math"):
+                prompt_template = "xwinmath"
+            elif model_name_or_path.startswith("TIGER-Lab--MAmmoTH2"):
+                prompt_template = "mammoth2-cot"
+            else:  # default
+                prompt_template = "alpaca"
+        elif prompt_type == "tool":
+            if model_name_or_path in DEEPSEEK_INSTR_MODEL_IDS:
+                prompt_template = "deepseekmath-tool"
+
+        if prompt_template is None:
+            raise ValueError(
+                f"Unknown prompt type {prompt_type} for model {model_name_or_path}."
+            )
+
+        prompt_template = PromptTemplate.load_from_id_or_path(prompt_template)
+        if "MMIQC" in model_name_or_path:
+            prompt_template.prompt_before_resp = (
+                'Please solve the following problem and put your answer at the end with "The answer is: ".'
+                + " "
+            )
+
+        return prompt_template
 
 
 # Logging

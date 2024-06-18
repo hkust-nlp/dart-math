@@ -1,6 +1,7 @@
 models/
 data/*
-!data/eval-dsets
+!data/dsets
+logs/
 
 _docs/
 _proc/
