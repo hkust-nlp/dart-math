@@ -47,16 +47,16 @@ slightly shifted and downsampled for clarity. </sup>
 | `DART-Math-Pool-MATH`  | DARS-Unifrom   |         1615k | 🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-math)  |
 | `DART-Math-Pool-GSM8K` | DARS-Unifrom   |         2739k | 🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-gsm8k) |
 
-| Model                               | [MATH](https://huggingface.co/datasets/hendrycks/competition_math) | [GSM8K](https://huggingface.co/datasets/gsm8k) | [CollegeMath](https://github.com/hkust-nlp/dart-math/tree/main/data/eval-dsets/mwpbench/college-math-test.jsonl) |                                     Download                                      |
-|:------------------------------------|-------------------------------------------------------------------:|-----------------------------------------------:|-----------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|
-| `DART-Math-Llama-3-70B` (Uniform)   |                                                               54.9 |                                       **90.4** |                                                                                                         **38.5** |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-70b-uniform)  |
-| `DART-Math-Llama-3-70B` (Prop2Diff) |                                                           **56.1** |                                           89.6 |                                                                                                             37.9 | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-70b-prop2diff) |
-| `DART-Math-DSMath-7B` (Uniform)     |                                                               52.9 |                                       **88.2** |                                                                                                             40.1 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-dsmath-7b-uniform)   |
-| `DART-Math-DSMath-7B` (Prop2Diff)   |                                                           **53.6** |                                           86.8 |                                                                                                         **40.7** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-dsmath-7b-prop2diff)  |
-| `DART-Math-Mistral-7B` (Uniform)    |                                                               43.5 |                                       **82.6** |                                                                                                             26.9 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-mistral-7b-uniform)  |
-| `DART-Math-Mistral-7B` (Prop2Diff)  |                                                           **45.5** |                                           81.1 |                                                                                                         **29.4** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-mistral-7b-prop2diff) |
-| `DART-Math-Llama-3-8B` (Uniform)    |                                                               45.3 |                                       **82.5** |                                                                                                             27.1 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-8b-uniform)   |
-| `DART-Math-Llama-3-8B` (Prop2Diff)  |                                                           **46.6** |                                           81.1 |                                                                                                         **28.8** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-8b-prop2diff)  |
+| Model                               | [MATH](https://huggingface.co/datasets/hendrycks/competition_math) | [GSM8K](https://huggingface.co/datasets/gsm8k) | [CollegeMath](https://github.com/hkust-nlp/dart-math/tree/main/data/dsets/mwpbench/college-math-test.jsonl) |                                     Download                                      |
+|:------------------------------------|-------------------------------------------------------------------:|-----------------------------------------------:|------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|
+| `DART-Math-Llama-3-70B` (Uniform)   |                                                               54.9 |                                       **90.4** |                                                                                                    **38.5** |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-70b-uniform)  |
+| `DART-Math-Llama-3-70B` (Prop2Diff) |                                                           **56.1** |                                           89.6 |                                                                                                        37.9 | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-70b-prop2diff) |
+| `DART-Math-DSMath-7B` (Uniform)     |                                                               52.9 |                                       **88.2** |                                                                                                        40.1 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-dsmath-7b-uniform)   |
+| `DART-Math-DSMath-7B` (Prop2Diff)   |                                                           **53.6** |                                           86.8 |                                                                                                    **40.7** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-dsmath-7b-prop2diff)  |
+| `DART-Math-Mistral-7B` (Uniform)    |                                                               43.5 |                                       **82.6** |                                                                                                        26.9 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-mistral-7b-uniform)  |
+| `DART-Math-Mistral-7B` (Prop2Diff)  |                                                           **45.5** |                                           81.1 |                                                                                                    **29.4** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-mistral-7b-prop2diff) |
+| `DART-Math-Llama-3-8B` (Uniform)    |                                                               45.3 |                                       **82.5** |                                                                                                        27.1 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-8b-uniform)   |
+| `DART-Math-Llama-3-8B` (Prop2Diff)  |                                                           **46.6** |                                           81.1 |                                                                                                    **28.8** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-8b-prop2diff)  |
 
 ## `DART-Math` Models: SOTA on Various In-Domain and Out-of-Domain Benchmarks
 
@@ -316,6 +316,14 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
 We package our code of effcient and flexible training & inference &
 evaluation pipelines into `dart-math` and document it at [this
 website](https://hkust-nlp.github.io/dart-math/quick-start.html).
+
+The `dart-math` package provides the following useful features besides
+ones mentioned above:
+
+- **Tool-integrated reasoning**: reasoning in natural language
+  interleaved with Python code (see the `code_exec_cfg` attribute of
+  [`Generator`](https://hkust-nlp.github.io/dart-math/gen.html#generator));
+- …
 
 ## Acknowlegements
 

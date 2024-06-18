@@ -4,6 +4,7 @@
 # # Generation
 #
 # > Generate with specified stopping criteria
+#
 
 import argparse
 import logging
@@ -13,12 +14,23 @@ import time
 
 from vllm import LLM, SamplingParams
 
-from dart_math.data import RespSampleVLLM, load_query_dps
+
+from dart_math.utils import (
+    init_logging,
+    get_pathname_from_name_or_path,
+    PromptTemplate,
+)
+
+from dart_math.gen import is_dp_dars_finished, Generator
 from dart_math.eval import EvaluatorMathBatch
-from dart_math.gen import gen, get_prompt_template4model, is_dp_dars_finished
-from dart_math.utils import PromptTemplate, get_pathname_from_name_or_path, init_logging
+from dart_math.data import load_query_dps, RespSampleVLLM
+from dart_math.exec import CodeExecCfg
+from dart_math.utils import PROJ_HOME
+
 
 init_logging()
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 parser = argparse.ArgumentParser(description="vLLM generation", allow_abbrev=False)
@@ -26,7 +38,7 @@ parser = argparse.ArgumentParser(description="vLLM generation", allow_abbrev=Fal
 parser.add_argument(
     "--gen_save_path",
     type=str,
-    required=True,
+    default=os.path.join(PROJ_HOME, "data/res/gen.jsonl"),
     help="Path save results of generation (and evaluation).",
 )
 
@@ -46,7 +58,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_name_or_path",
     type=str,
-    default="mistralai/Mistral-7B-v0.1",
+    default="deepseek-ai/deepseek-math-7b-rl",
     help="HF-style model name or path.",
 )
 
@@ -62,8 +74,8 @@ parser.add_argument(
     "--datasets",
     type=str,
     nargs="+",
-    default=["math"],
-    help="Dataset(s) for evaluation.",
+    default=["math-test"],
+    help="Dataset(s) to generate on.",
 )
 
 # Generation configurations
@@ -98,7 +110,7 @@ parser.add_argument(
 parser.add_argument(
     "--prompt_template",
     type=str,
-    default="auto",
+    default="cot",
     help="ID / Path to the file of prompt template.",
 )
 
@@ -144,19 +156,34 @@ parser.add_argument(
     help="(List of) minimum number of correct completions per query needed to stop generation. Non-positive means no goal.",
 )
 
+# Code execution
+parser.add_argument(
+    "--code_exec_cfg",
+    type=str,
+    default="",
+    help="ID / Path to file of the code execution configuration .",
+)
+
 args, unk_args = parser.parse_known_args(sys.argv)
 
 
 if args.inf_seed == -1:
     args.inf_seed = int(time.time() * 10**6) % 2**32
+    logging.warning(f"args.inf_seed=-1 -> Setting {args.inf_seed=}")
+
+if "tool" in args.prompt_template and args.code_exec_cfg == "":
+    args.code_exec_cfg = "python"
+    logging.warning(f"{args.prompt_template=} -> Setting {args.code_exec_cfg=}")
 
 
 model_dirname = get_pathname_from_name_or_path(args.model_name_or_path)
 
 
 prompt_template = (
-    get_prompt_template4model(args.model_name_or_path)
-    if args.prompt_template == "auto"
+    PromptTemplate.get_prompt_template_from_prompt_type_and_model(
+        prompt_type=args.prompt_template, model_name_or_path=args.model_name_or_path
+    )
+    if args.prompt_template in ["cot", "tool"]
     else PromptTemplate.load_from_id_or_path(args.prompt_template)
 )
 
@@ -166,7 +193,7 @@ if args.temperature <= 1e-5:
     args.n_paths = 1
     args.top_p = 1
     logging.warning(
-        "Temperature is too small. Setting temperautre = 0, n_paths = 1, top_p = 1 for vLLM."
+        f"args.temperature<=1e-5 -> Setting {args.temperature=}, {args.n_paths=}, {args.top_p=} for vLLM."
     )
 
 sampling_params = SamplingParams(
@@ -174,20 +201,23 @@ sampling_params = SamplingParams(
     temperature=args.temperature,
     top_p=args.top_p,
     max_tokens=args.max_new_toks,
-    stop=[prompt_template.query_prompt.strip(), prompt_template.resp_prompt.strip()],
     skip_special_tokens=True,
     seed=args.inf_seed,
 )
 
-print(f"sampling_params = {sampling_params}")
-
 
 query_dps = load_query_dps(args.datasets, args.max_n_trials, args.min_n_corrects)
+logging.info(f"Loaded {len(query_dps)} query data points.")
+# TODO: response-wise prompt template
 for query_dp in query_dps:
     query_dp.prompt_template = prompt_template
 
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+sampling_params.stop = [
+    prompt_template.query_prompt.strip(),
+    prompt_template.resp_prompt.strip(),
+]
+logging.info(f"sampling_params = {sampling_params}")
 
 
 llm = LLM(
@@ -203,13 +233,21 @@ llm = LLM(
 logging.info("LLM loaded!")
 
 
-gen(
+generator = Generator(
     llm,
     sampling_params,
-    query_dps=query_dps,
-    dp_stop_criteria=is_dp_dars_finished,
     resp_sample_cls=RespSampleVLLM,
     batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None),
+    code_exec_cfg=(
+        CodeExecCfg.load_from_id_or_path(args.code_exec_cfg)
+        if args.code_exec_cfg
+        else None
+    ),
+)
+
+generator.gen(
+    query_dps=query_dps,
+    dp_stop_criteria=is_dp_dars_finished,
     save_path=args.gen_save_path,
     n_paths_per_save=args.save_gen_path_bs,
 )
