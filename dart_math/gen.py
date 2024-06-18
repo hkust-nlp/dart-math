@@ -212,7 +212,6 @@ class Generator:
                         gen_path = req_outputs[i].outputs[0]
                         new_gen_path = req_output.outputs[0]
                         gen_path.text += new_gen_path.text
-                        gen_path.token_ids += new_gen_path.token_ids
                         gen_path.finish_reason = new_gen_path.finish_reason
                         gen_path.stop_reason = new_gen_path.stop_reason
                         # Non-sense if simply adding up
@@ -228,17 +227,18 @@ class Generator:
                         is not None
                     ):  # Stop
                         continue
-                    if (
+                    if isinstance(self.code_exec_cfg.n_call_max, int) and (
                         gen_path.text.count(self.code_exec_cfg.output_begin)
                         >= self.code_exec_cfg.n_call_max
+                        > 0
                     ):
                         req_output.finish_reason = "call"
                         continue
                     if (
-                        len(gen_path.token_ids)  # All output tokens
-                        > self.sampling_params.max_tokens
+                        len(gen_path.token_ids) + len(req_output.prompt_token_ids)
+                        > self.llm.llm_engine.model_config.max_model_len  # All tokens
                     ):
-                        req_output.finish_reason = "length"
+                        req_output.finish_reason = "total-length"
                         continue
                     new_remain_ids.append(i)
 
@@ -276,7 +276,10 @@ class Generator:
                         output = stdout if stdout else stderr
                     else:  # e.g. `asyncio.TimeoutError`
                         output = str(exec_res)
-                    if len(output) > sum(self.code_exec_cfg.trunc_len):
+                    if (
+                        isinstance(self.code_exec_cfg.trunc_len, tuple)
+                        and len(output) > sum(self.code_exec_cfg.trunc_len) > 0
+                    ):
                         len_begin, len_end = self.code_exec_cfg.trunc_len
                         output = (
                             output[:len_begin]

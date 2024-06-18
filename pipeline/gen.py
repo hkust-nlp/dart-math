@@ -161,8 +161,22 @@ parser.add_argument(
     "--code_exec_cfg",
     type=str,
     default="",
-    help="ID / Path to file of the code execution configuration .",
+    help="ID / Path to file of the code execution configuration.",
 )
+parser.add_argument(
+    "--max_n_calls",
+    type=int,
+    default=None,
+    help="The maximum number of calls to the code execution function.\nThis could be large because there is token length limit already.\n`None` / Non-positive values mean no limit.",
+)
+parser.add_argument(
+    "--trunc_len",
+    type=int,
+    nargs=2,
+    default=(50, 50),
+    help="The maximum lengths to truncate the output into the beginning and end.\n`None` / double non-positive values like `(0, 0)` mean no truncation.",
+)
+
 
 args, unk_args = parser.parse_known_args(sys.argv)
 
@@ -233,16 +247,19 @@ llm = LLM(
 logging.info("LLM loaded!")
 
 
+code_exec_cfg = (
+    CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None
+)
+code_exec_cfg.max_n_calls = args.max_n_calls
+code_exec_cfg.trunc_len = args.trunc_len
+
+
 generator = Generator(
     llm,
     sampling_params,
     resp_sample_cls=RespSampleVLLM,
     batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None),
-    code_exec_cfg=(
-        CodeExecCfg.load_from_id_or_path(args.code_exec_cfg)
-        if args.code_exec_cfg
-        else None
-    ),
+    code_exec_cfg=code_exec_cfg,
 )
 
 generator.gen(

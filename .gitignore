@@ -2,6 +2,7 @@ models/
 data/*
 !data/dsets
 logs/
+nohup.out
 
 _docs/
 _proc/

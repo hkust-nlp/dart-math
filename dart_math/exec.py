@@ -29,10 +29,13 @@ class CodeExecCfg:
     output_end : str, default: "```"
     timeout : int, default: 5
         Timeout in seconds for code execution.
-    n_call_max : int, default: 2
+    n_call_max : int, default: None
         The maximum number of calls to the code execution function.
-    trunc_len : tuple[int, int], default: (50, 50)
+        This could be large because there is token length limit already.
+        `None` / Non-positive values mean no limit.
+    trunc_len : tuple[int, int], default: None
         The maximum lengths to truncate the output into the beginning and end.
+        `None` / double non-positive values like `(0, 0)` mean no truncation.
     elipsis : str, default: "..."
         The elipsis to use when truncating the output.
     """
@@ -45,8 +48,8 @@ class CodeExecCfg:
         output_begin: str = "```output",
         output_end: str = "```",
         timeout: int = 5,
-        n_call_max: int = 2,
-        trunc_len: tuple[int, int] = (50, 50),
+        n_call_max: int = None,
+        trunc_len: tuple[int, int] = None,
         elipsis: str = "...",
     ):
         self.input_begin = input_begin
@@ -113,24 +116,21 @@ class CodeExecCfg:
         """Return `f"{self.output_begin}\\n{output}\\n{self.output_begin}"`"""
         return f"{self.output_begin}\n{output}\n{self.output_begin}"
 
-    def __repr__(self) -> str:
-        return f"""CodeExecCfg(
-    input_begin={self.input_begin}, input_end={self.input_end}, output_code_prefix={self.output_code_prefix},output_begin={self.output_begin}, output_end={self.output_end},
-    timeout={self.timeout}, n_call_max={self.n_call_max},
-    trunc_len={self.trunc_len}, elipsis={self.elipsis}
-    )"""
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
 
 NB_OUTPUT_PROMPT = "Out[1]: "
 
 
 def exec_cells(cells: list[str]) -> str:
-    # Modified from
-    # - https://github.com/Kipok/NeMo-Skills/blob/6a909ec0974340b02a1083dce90e79bea30ecb60/nemo_skills/code_execution/sandbox.py#L168-L233
-    # - https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/infer/run_tool_integrated_eval.py#L163-L180
+    """Execute the code cells like a notebook and return the stdout and stderr of the last cell.
+    Modified from
+    - https://github.com/Kipok/NeMo-Skills/blob/6a909ec0974340b02a1083dce90e79bea30ecb60/nemo_skills/code_execution/sandbox.py#L168-L233
+    - https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/infer/run_tool_integrated_eval.py#L163-L180
+
+    Parameters
+    ----------
+    cells : list[str]
+        The code cells to execute.
+    """
     try:
         shell = InteractiveShell()
         shell.run_cell(
