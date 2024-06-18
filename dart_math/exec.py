@@ -101,10 +101,6 @@ class CodeExecCfg:
         list[str]
             The extracted code cells.
         """
-        if text.startswith(self.input_begin):
-            # Following https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/infer/run_tool_integrated_eval.py#L26-L47
-            # for tool-integrated reasoning
-            text = "hey\n" + text
         cells = [
             snippet.split(self.input_end, 1)[0].strip()
             for snippet in text.split(self.input_begin)
