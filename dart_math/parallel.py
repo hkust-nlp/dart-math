@@ -28,6 +28,7 @@ async def seq_consume_preset_queue_w_each_timeout(
     """Sequentially run computation-intensive `consumer` along a preset (no more input) indexed task `idxed_kwargs_queue` with each task having `timeout`.
     `queue.SimpleQueue` is not thread-safe, don't run multiple consumers in the same process.
     However, `multiprocessing.SimpleQueue` is process-safe based on pipe, you can run multiple consumers in the same number of processes.
+    NOTE: co-routine would get stuck with some consumer like creating and running new interactive IPython shells even with timeout set.
 
     Parameters
     ----------
@@ -49,7 +50,7 @@ async def seq_consume_preset_queue_w_each_timeout(
     if not inspect.isawaitable(consumer):
         consumer = async_wrap(consumer)
 
-    if isinstance(idxed_kwargs_queue, list):
+    if isinstance(idxed_kwargs_queue, (list, enumerate, tuple)):
         idx_kwargs_list = idxed_kwargs_queue
         idxed_kwargs_queue = queue.SimpleQueue()
         for idx_kwargs in idx_kwargs_list:

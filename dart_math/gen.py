@@ -202,15 +202,15 @@ class Generator:
                 remain_req_outputs = self.llm.generate(
                     remain_input_strs, self.sampling_params
                 )
-                for i, req_output in zip(remain_ids, remain_req_outputs):
+                for i, new_req_output in zip(remain_ids, remain_req_outputs):
                     if req_outputs[i] is None:
-                        req_output.outputs[0].cumulative_logprob = [
-                            req_output.outputs[0].cumulative_logprob
+                        new_req_output.outputs[0].cumulative_logprob = [
+                            new_req_output.outputs[0].cumulative_logprob
                         ]
-                        req_outputs[i] = req_output
+                        req_outputs[i] = new_req_output
                     else:  # Align with RespSampleVLLM.collect
                         gen_path = req_outputs[i].outputs[0]
-                        new_gen_path = req_output.outputs[0]
+                        new_gen_path = new_req_output.outputs[0]
                         gen_path.text += new_gen_path.text
                         gen_path.finish_reason = new_gen_path.finish_reason
                         gen_path.stop_reason = new_gen_path.stop_reason
@@ -222,21 +222,28 @@ class Generator:
                 for i in remain_ids:
                     req_output = req_outputs[i]
                     gen_path = req_output.outputs[0]
-                    if self.code_exec_cfg.no_cells_todo(gen_path.text) or (
+                    code_extract_no = self.code_exec_cfg.no_cells_todo(gen_path.text)
+                    if code_extract_no == 1 or (
                         self.batch_evaluator.extract_explicit_ans(gen_path.text)
                         is not None
-                    ):  # Stop
+                    ):  # Finish
                         continue
-                    if isinstance(self.code_exec_cfg.n_call_max, int) and (
+                    if code_extract_no == 2:
+                        req_output.finish_reason = "over-output"
+                        continue
+                    if isinstance(self.code_exec_cfg.max_n_calls, int) and (
                         gen_path.text.count(self.code_exec_cfg.output_begin)
-                        >= self.code_exec_cfg.n_call_max
+                        >= self.code_exec_cfg.max_n_calls
                         > 0
                     ):
                         req_output.finish_reason = "call"
                         continue
-                    if (
-                        len(gen_path.token_ids) + len(req_output.prompt_token_ids)
-                        > self.llm.llm_engine.model_config.max_model_len  # All tokens
+                    max_model_len = (
+                        self.llm.llm_engine.scheduler.scheduler_config.max_model_len
+                    )
+                    # All tokens
+                    if len(gen_path.token_ids) + len(req_output.prompt_token_ids) >= (
+                        0.8 * max_model_len
                     ):
                         req_output.finish_reason = "total-length"
                         continue
@@ -246,15 +253,38 @@ class Generator:
                 logging.info(f"len(remain_ids): {len(remain_ids)}")
                 if len(remain_ids) == 0:
                     break
+                logging.info(f"{req_outputs[remain_ids[0]].outputs[0].text=}")
                 cells_list = [
                     self.code_exec_cfg.extract_cells(req_outputs[i].outputs[0].text)
                     for i in remain_ids
                 ]
-                logging.info(f"cells_list: (#{len(cells_list)})[{cells_list[0]},...]")
-                assert len(cells_list) == len(remain_ids), "Mismatched cells and ids"
+                logging.info(
+                    f"cells_list: (#{len(cells_list)})[(#{len(cells_list[0])}){cells_list[0]},...]"
+                )
+                assert len(cells_list) == len(
+                    remain_ids
+                ), f"Mismatched cells(#{len(cells_list)}) and ids(#{len(remain_ids)})"
+
+                # DEFUNCT: co-routine would get stuck
+                # import asyncio
+                # pbar = tqdm(total=len(cells_list), desc="Executing")
+                # idxed_results = asyncio.run(
+                #     seq_consume_preset_queue_w_each_timeout(
+                #         exec_cells,
+                #         idxed_kwargs_queue=enumerate(
+                #             [{"cells": cells} for cells in cells_list]
+                #         ),
+                #         timeout=self.code_exec_cfg.timeout,
+                #         pbar=pbar,
+                #     )
+                # )
+                # pbar.close()
+                # for idx, exec_res in idxed_results:
 
                 results = []
-                with ProcessPool(max_workers=4) as pool:
+                with ProcessPool(
+                    max_workers=min(self.code_exec_cfg.max_n_workers, len(cells_list))
+                ) as pool:
                     iterator = pool.map(
                         exec_cells, cells_list, timeout=self.code_exec_cfg.timeout
                     ).result()
@@ -269,11 +299,13 @@ class Generator:
                             results.append(e)
                         pbar.update(1)
                     pbar.close()
-
                 for idx, exec_res in enumerate(results):
                     if isinstance(exec_res, tuple):
                         stdout, stderr = exec_res
-                        output = stdout if stdout else stderr
+                        output = stdout
+                        if stderr:
+                            output += "\n" + stderr
+
                     else:  # e.g. `asyncio.TimeoutError`
                         output = str(exec_res)
                     if (
@@ -289,7 +321,9 @@ class Generator:
                     req_id = remain_ids[idx]
                     req_output = req_outputs[req_id]
                     req_output.outputs[0].text += (
-                        self.code_exec_cfg.wrap_output(output) + "\n\n"
+                        "\n"  # Assure the output is separated from the input
+                        + self.code_exec_cfg.wrap_output(output)
+                        + "\n"  # Neccessary for preventing LLM from genearting the output itself
                     )
 
         logging.info(f"req_outputs[0].outputs[0]: {req_outputs[0].outputs[0]}")
@@ -333,9 +367,6 @@ class Generator:
         sched_finished = False
 
         sample_cnt = 0
-        achieve_cnt = 0
-        quit_cnt = 0
-
         while not sched_finished:  # Loop on batches
             batch_dps = []
             batch_input_strs = []
@@ -343,15 +374,13 @@ class Generator:
             # Collect input strings batch
             batch_collected = False
             while not (batch_collected or sched_finished):
+
                 # Loop on `query_samples` repeatedly
                 sched_finished = True  # Speculate that all data points are finished
                 for dp in query_dps:  # Loop on data points
                     stop_reason = dp_stop_criteria(dp)
                     if stop_reason is not None:
-                        quit_cnt += stop_reason == "max_n_trials"
-                        achieve_cnt += stop_reason == "max_n_corrects"
-                        continue  # Skip finished data point
-
+                        continue  # Skip the stopped data point
                     # Still have data points to generate
                     sched_finished = False
                     dp.n_trials += 1  # For `dp_stop_criteria`
@@ -411,6 +440,13 @@ class Generator:
                 sample_cnt += len(batch_new_samples)
 
             n_all_dps = len(query_dps)
+            quit_cnt = 0
+            achieve_cnt = 0
+            for dp in query_dps:
+                stop_reason = dp_stop_criteria(dp)
+                quit_cnt += stop_reason == "max_n_trials"
+                achieve_cnt += stop_reason == "max_n_corrects"
+
             logging.info(
                 f"""# of new samples: {sample_cnt}
                 Rate achieving `max_n_corrects` : {achieve_cnt / n_all_dps:.2%} (= {achieve_cnt}/{n_all_dps})

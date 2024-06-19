@@ -1,5 +1,5 @@
 models/
-data/*
+data/
 !data/dsets
 logs/
 nohup.out

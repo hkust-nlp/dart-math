@@ -29,7 +29,9 @@ class CodeExecCfg:
     output_end : str, default: "```"
     timeout : int, default: 5
         Timeout in seconds for code execution.
-    n_call_max : int, default: None
+    max_n_workers : int, default: 4
+        The maximum number of CPU core workers to execute the code with multi-processing.
+    max_n_calls : int, default: None
         The maximum number of calls to the code execution function.
         This could be large because there is token length limit already.
         `None` / Non-positive values mean no limit.
@@ -48,7 +50,8 @@ class CodeExecCfg:
         output_begin: str = "```output",
         output_end: str = "```",
         timeout: int = 5,
-        n_call_max: int = None,
+        max_n_workers: int = 4,
+        max_n_calls: int = None,
         trunc_len: tuple[int, int] = None,
         elipsis: str = "...",
     ):
@@ -58,7 +61,8 @@ class CodeExecCfg:
         self.output_begin = output_begin
         self.output_end = output_end
         self.timeout = timeout
-        self.n_call_max = n_call_max
+        self.max_n_workers = max_n_workers
+        self.max_n_calls = max_n_calls
         self.trunc_len = trunc_len
         self.elipsis = elipsis
 
@@ -85,11 +89,29 @@ class CodeExecCfg:
         else:
             return CodeExecCfg()  # Default: "python"
 
-    def no_cells_todo(self, text: str) -> bool:
-        """Judge if there are no code cells to execute."""
-        input_cnt = text.count(self.input_begin)
-        output_cnt = text.count(self.output_begin)
-        return text.count(self.input_begin) == 0 or input_cnt == output_cnt
+    def no_cells_todo(self, context: str) -> int:
+        """Judge if there are no code cells to execute.
+
+        Parameters
+        ----------
+        context : str
+            The whole context containing all the code cells.
+
+        Returns
+        -------
+        int
+            0: Normal
+            1: No code cells to execute
+            2: Output cells are more than input cells
+        """
+        input_cnt = context.count(self.input_begin)
+        output_cnt = context.count(self.output_begin)
+        if input_cnt == output_cnt:
+            return 1
+        elif output_cnt > input_cnt:
+            return 2  # Must be an error
+        else:
+            return 0  # Normal
 
     def extract_cells(self, text: str) -> list[str]:
         """Extract code cells from the text.
@@ -113,8 +135,8 @@ class CodeExecCfg:
         return cells
 
     def wrap_output(self, output: str) -> str:
-        """Return `f"{self.output_begin}\\n{output}\\n{self.output_begin}"`"""
-        return f"{self.output_begin}\n{output}\n{self.output_begin}"
+        """Return `f"{self.output_begin}\\n{output}\\n{self.output_end}"`"""
+        return f"{self.output_begin}\n{output}\n{self.output_end}"
 
 
 NB_OUTPUT_PROMPT = "Out[1]: "

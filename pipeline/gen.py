@@ -85,49 +85,42 @@ parser.add_argument(
     default=0,
     help="Temperature for sampling.",
 )
-
 parser.add_argument(
     "--top_p",
     type=float,
     default=0.95,
     help="Top-p for sampling.",
 )
-
 parser.add_argument(
     "--max_new_toks",
     type=int,
     default=2048,
     help="Maximum number of new tokens.",
 )
-
 parser.add_argument(
     "--n_shots",
     type=int,
     default=-1,
     help="Number of shots for prompting. -1 means adaptive to datasets.",
 )
-
 parser.add_argument(
     "--prompt_template",
     type=str,
     default="cot",
     help="ID / Path to the file of prompt template.",
 )
-
 parser.add_argument(
     "--n_paths",
     type=int,
     default=1,
     help="Number of generated completions per request. NOTE: might cause bug in vLLM (0.4.2).",
 )
-
 parser.add_argument(
     "--save_gen_path_bs",
     type=int,
     default=2**14,
     help="# Completions = # Paths per request * # Requests. Values <= 0 mean adaptive.",
 )
-
 parser.add_argument(
     "--inf_seed",
     type=int,
@@ -164,6 +157,12 @@ parser.add_argument(
     help="ID / Path to file of the code execution configuration.",
 )
 parser.add_argument(
+    "--max_n_workers",
+    type=int,
+    default=None,
+    help="The maximum number of CPU core workers to execute the code with multi-processing.",
+)
+parser.add_argument(
     "--max_n_calls",
     type=int,
     default=None,
@@ -173,10 +172,9 @@ parser.add_argument(
     "--trunc_len",
     type=int,
     nargs=2,
-    default=(50, 50),
+    default=None,
     help="The maximum lengths to truncate the output into the beginning and end.\n`None` / double non-positive values like `(0, 0)` mean no truncation.",
 )
-
 
 args, unk_args = parser.parse_known_args(sys.argv)
 
@@ -250,6 +248,7 @@ logging.info("LLM loaded!")
 code_exec_cfg = (
     CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None
 )
+code_exec_cfg.max_n_workers = args.max_n_workers
 code_exec_cfg.max_n_calls = args.max_n_calls
 code_exec_cfg.trunc_len = args.trunc_len
 
@@ -261,7 +260,6 @@ generator = Generator(
     batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None),
     code_exec_cfg=code_exec_cfg,
 )
-
 generator.gen(
     query_dps=query_dps,
     dp_stop_criteria=is_dp_dars_finished,
