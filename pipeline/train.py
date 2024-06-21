@@ -12,9 +12,10 @@ from typing import Optional
 
 import torch
 import transformers
+from transformers import Trainer
+
 from dart_math.train import make_supervised_dset, monkey_patch4pack
 from dart_math.utils import PROJ_HOME, init_logging
-from transformers import Trainer
 
 init_logging()
 
@@ -218,6 +219,7 @@ def train():
         tokenizer=tokenizer,
         data_path=data_args.data_path,
         query_field=data_args.query_field,
+        resp_field=data_args.resp_field,
         tokenized_cache_home=data_args.tokenized_cache_home,
         shuffle_seed=data_args.shuffle_seed,
         pack_len=training_args.pack_len,

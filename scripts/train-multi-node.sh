@@ -87,7 +87,7 @@ accelerate launch \
     pipeline/train.py \
     --data_path ${data_path} \
     --query_field "query" \
-    --response_field "response" \
+    --resp_field "response" \
     --prompt_template "alpaca" \
     --tokenized_cache_home "$(realpath data/cache-tokenized)" \
     --model_name_or_path "meta-llama/Meta-Llama-3-70B" \
