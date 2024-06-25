@@ -7,6 +7,8 @@ from datetime import datetime
 from math import isclose
 from typing import Any, Callable
 
+from pebble import ProcessPool
+
 # Useful for `eval` despite not appearing in the code
 from sympy import (
     E,
@@ -202,44 +204,49 @@ class EvaluatorBatchBase(EvaluatorBase):
         self.timeout = timeout
 
     def batch_eval(
-        self, samples: list[RespSampleBase], n_procs: int = 1, use_tqdm: bool = True
+        self, samples: list[RespSampleBase], n_procs: int = 2, use_tqdm: bool = True
     ) -> tuple[list[str], list[bool]]:
         """Evaluate a batch of `samples` based on comprehensive information."""
-        if n_procs > 1:
-            raise NotImplementedError("Multiprocessing is not supported yet.")
 
-        idxed_kwargs_queue = queue.SimpleQueue()
-        for idx, sample in enumerate(samples):
-            idxed_kwargs_queue.put((idx, {"resp_str": sample.resp}))
-        for _ in range(n_procs):
-            idxed_kwargs_queue.put(None)  # Ending signal for each process
-        idxed_answers = asyncio.run(
-            seq_consume_preset_queue_w_each_timeout(
-                self.extract_ans,
-                idxed_kwargs_queue,
-                self.timeout,
-                pbar=tqdm(total=len(samples), disable=not use_tqdm, desc="Extracting"),
-            )
-        )
-        answers = [ans for _, ans in sorted(idxed_answers, key=lambda x: x[0])]
-        for sample, ans in zip(samples, answers):
-            sample.ans = ans
+        n_samples = len(samples)
+        with ProcessPool(max_workers=min(n_procs, n_samples), max_tasks=1024) as pool:
+            iterator = pool.map(self.eval, samples, timeout=self.timeout).result()
 
-        for idx, sample in enumerate(samples):
-            idxed_kwargs_queue.put((idx, {"sample": sample}))
-        for _ in range(n_procs):
-            idxed_kwargs_queue.put(None)  # Ending signal for each process
-        idxed_corrects = asyncio.run(
-            seq_consume_preset_queue_w_each_timeout(
-                self.eval,
-                idxed_kwargs_queue,
-                self.timeout,
-                pbar=tqdm(total=len(samples), disable=not use_tqdm, desc="Evaluating"),
-            )
-        )
-        corrects = [
-            correct for _, correct in sorted(idxed_corrects, key=lambda x: x[0])
-        ]
+            answers = []
+            pbar = tqdm(total=n_samples, desc="Extracting") if use_tqdm else None
+            corrects = []
+            while True:
+                try:
+                    result = next(iterator)
+                    answers.append(result)
+                except StopIteration:
+                    break
+                except Exception:
+                    answers.append("")
+                if pbar:
+                    pbar.update(1)
+            if pbar:
+                pbar.close()
+
+            for sample, ans in zip(samples, answers):
+                sample.ans = ans
+
+            iterator = pool.map(self.eval, samples, timeout=self.timeout).result()
+
+            pbar = tqdm(total=n_samples, desc="Evaluating") if use_tqdm else None
+            corrects = []
+            while True:
+                try:
+                    result = next(iterator)
+                    corrects.append(result)
+                except StopIteration:
+                    break
+                except Exception:
+                    corrects.append(False)
+                if pbar:
+                    pbar.update(1)
+            if pbar:
+                pbar.close()
 
         return answers, corrects
 
