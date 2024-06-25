@@ -4,7 +4,7 @@ set -e
 modified_files=$(git ls-files --modified)
 untracked_files=$(git ls-files --others --exclude-standard)
 staged_files=$(git diff --name-only --cached)
-all_files=$"$modified_files\n$untracked_files\n$staged_files"
+all_files=$(echo -e $"$modified_files\n$untracked_files\n$staged_files")
 # echo "all_files=${all_files}"
 todo_nbs=$(echo "${all_files}" | grep -E '.*\.ipynb$' | sort | uniq)
 
