@@ -245,9 +245,10 @@ logging.info("LLM loaded!")
 code_exec_cfg = (
     CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None
 )
-code_exec_cfg.max_n_workers = args.max_n_workers
-code_exec_cfg.max_n_calls = args.max_n_calls
-code_exec_cfg.trunc_len = args.trunc_len
+if code_exec_cfg:
+    code_exec_cfg.max_n_workers = args.max_n_workers
+    code_exec_cfg.max_n_calls = args.max_n_calls
+    code_exec_cfg.trunc_len = args.trunc_len
 
 
 generator = Generator(
