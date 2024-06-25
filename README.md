@@ -295,10 +295,44 @@ to evaluate the generations by yourself.
 
 ### 🗂 Data Synthesis
 
-Our data synthesis pipeline is compatible with the evaluation pipeline.
+Our data synthesis pipeline is compatible with the evaluation pipeline,
+please **modify the `--min_n_corrects` and `--max_n_trials` arguments**
+to meet your needs.
 
-For example, to reproduce synthesis of `DART-Math-Uniform`, run the
-following command with different GPUs, please run the following command:
+For example, to reproduce the **synthesis of `DART-Math-Uniform`**,
+amortizing the workload to multiple GPUs, please run the following
+command:
+
+``` shell
+gpu_ids_list=("0" "1" "2" "3" "4" "5" "6" "7")
+min_n_corrects=40
+min_n_corrects_per_gpu=$((min_n_corrects / ${#gpu_ids_list[@]})) # 5 here
+
+mkdir -p logs
+for gpu_ids in "${gpu_ids_list[@]}"; do
+    exp_name="dart-math-uniform-gpu${gpu_ids}"
+    CUDA_VISIBLE_DEVICES="${gpu_ids}" python pipeline/gen.py \
+        --gen_save_path "data/res/${exp_name}.jsonl" \
+        --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
+        --datasets "math-train" "gsm8k-train" \
+        --max_new_tokens 2048 --temperature 1.6 --top_p 0.95 \
+        --prompt_template "deepseekmath" --n_shots 0 \
+        --inf_seed -1 \
+        --min_n_corrects "${min_n_corrects_per_gpu}" --max_n_trials 0 \
+        >"logs/${exp_name}.log" 2>&1 &
+    # NOTE: `--max_n_trials 0` means possible infinite trials, kill the job manually when needed
+done
+```
+
+To reproduce the data synthesis of the **Vanilla Rejection Tuning (VRT)
+baseline** in the paper, just set
+`--max_n_trials 52 --min_n_corrects 0`.
+
+<details>
+<summary>
+The off-the-shelf command to reproduce the data synthesis of the Vanilla
+Rejection Tuning (VRT) baseline in the paper
+</summary>
 
 ``` shell
 CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
@@ -306,10 +340,12 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
     --datasets "math-train" "gsm8k-train" \
     --max_new_tokens 2048 --temperature 1.6 --top_p 0.95 \
-    --prompt_template "deepseekmath" --n_shots 0 \
+    --prompt_template "cot" --n_shots 0 \
     --inf_seed -1 \
-    --min_n_corrects 40 --max_n_trials 0 # unlimited, should be killed manually
+    --max_n_trials 52 --min_n_corrects 0 # no requirement for correct responses
 ```
+
+</details>
 
 ## [`dart-math` Package](https://hkust-nlp.github.io/dart-math): Efficient and Flexible Training & Inference & Evaluation Pipelines
 
