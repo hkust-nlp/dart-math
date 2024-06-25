@@ -12,3 +12,4 @@ einops
 packaging
 ninja
 pebble
+ipython
