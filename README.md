@@ -291,7 +291,8 @@ directly modify the
 You can also add the `--gen_only` option to only generate responses
 without evaluation and use the
 [`EvaluatorMathBatch`](https://hkust-nlp.github.io/dart-math/eval.html#evaluatormathbatch)
-to evaluate the generations by yourself.
+to grade the generations by yourself. Please check the [grading
+script](pipeline/grade.py) for example.
 
 ### 🗂 Data Synthesis
 
@@ -346,6 +347,9 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
 ```
 
 </details>
+
+After the synthesis, you can use the [curation
+script](pipeline/curate.py) to curate the final dataset.
 
 ## [`dart-math` Package](https://hkust-nlp.github.io/dart-math): Efficient and Flexible Training & Inference & Evaluation Pipelines
 
