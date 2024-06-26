@@ -412,13 +412,7 @@ class Generator:
                     batch_new_samples.append(self.resp_sample_cls.collect(dp, gen_path))
 
             if self.batch_evaluator is not None:
-                answers, corrects = self.batch_evaluator.batch_eval(batch_new_samples)
-
-                for sample, ans, correct in zip(batch_new_samples, answers, corrects):
-                    sample.ans = str(ans)
-                    sample.correct = (
-                        correct if isinstance(correct, bool) else bool(correct)
-                    )
+                self.batch_evaluator.batch_eval(batch_new_samples)
 
                 sample_idx = 0
                 for dp, req_output in zip(batch_dps, batch_req_outputs):

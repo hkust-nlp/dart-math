@@ -138,7 +138,7 @@ class RespSampleBase:
             for k, v in self.__dict__.items()
             if k not in ["query", "resp", "prompt_template"]
         }
-        d["prompt_template"] = self.prompt_template.id
+        d["prompt_template"] = getattr(self.prompt_template, "id", self.prompt_template)
         d["query"] = self.query
         d["resp"] = self.resp
 

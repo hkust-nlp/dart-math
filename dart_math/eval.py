@@ -206,10 +206,11 @@ class EvaluatorBatchBase(EvaluatorBase):
     def batch_eval(
         self, samples: list[RespSampleBase], n_procs: int = 2, use_tqdm: bool = True
     ) -> tuple[list[str], list[bool]]:
-        """Evaluate a batch of `samples` based on comprehensive information."""
+        """Evaluate a batch of `samples` based on comprehensive information in place."""
 
         n_samples = len(samples)
         with ProcessPool(max_workers=min(n_procs, n_samples), max_tasks=1024) as pool:
+            # NOTE: multi-processing does not support modifications in place
             resps = [sample.resp for sample in samples]
             iterator = pool.map(self.extract_ans, resps, timeout=self.timeout).result()
             answers = []
@@ -229,7 +230,7 @@ class EvaluatorBatchBase(EvaluatorBase):
                 pbar.close()
 
             for sample, ans in zip(samples, answers):
-                sample.ans = ans
+                sample.ans = str(ans)
 
             iterator = pool.map(self.eval, samples, timeout=self.timeout).result()
             pbar = tqdm(total=n_samples, desc="Evaluating") if use_tqdm else None
@@ -246,6 +247,9 @@ class EvaluatorBatchBase(EvaluatorBase):
                     pbar.update(1)
             if pbar:
                 pbar.close()
+
+            for sample, correct in zip(samples, corrects):
+                sample.correct = bool(correct)
 
         return answers, corrects
 
