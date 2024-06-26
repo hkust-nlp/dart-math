@@ -10,8 +10,7 @@ from vllm import LLM, RequestOutput, SamplingParams
 from .data import DS_ID2N_SHOTS, ICL_EGS, QueryDataPoint, RespSampleBase, RespSampleVLLM
 from .eval import EvaluatorBatchBase
 from .exec import CodeExecCfg, exec_cells
-from .parallel import seq_consume_preset_queue_w_each_timeout
-from .utils import BASE_MODEL_IDS, PromptTemplate, get_pathname_from_name_or_path
+from .utils import BASE_MODEL_IDS, get_pathname_from_name_or_path
 
 # %% ../nbs/02_gen.ipynb 0
 

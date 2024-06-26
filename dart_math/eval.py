@@ -210,8 +210,8 @@ class EvaluatorBatchBase(EvaluatorBase):
 
         n_samples = len(samples)
         with ProcessPool(max_workers=min(n_procs, n_samples), max_tasks=1024) as pool:
-            iterator = pool.map(self.eval, samples, timeout=self.timeout).result()
-
+            resps = [sample.resp for sample in samples]
+            iterator = pool.map(self.extract_ans, resps, timeout=self.timeout).result()
             answers = []
             pbar = tqdm(total=n_samples, desc="Extracting") if use_tqdm else None
             corrects = []
@@ -232,7 +232,6 @@ class EvaluatorBatchBase(EvaluatorBase):
                 sample.ans = ans
 
             iterator = pool.map(self.eval, samples, timeout=self.timeout).result()
-
             pbar = tqdm(total=n_samples, desc="Evaluating") if use_tqdm else None
             corrects = []
             while True:

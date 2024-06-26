@@ -9,21 +9,23 @@
 import argparse
 import logging
 import os
-import sys
 import time
 
 from vllm import LLM, SamplingParams
 
-from dart_math.data import RespSampleVLLM, load_query_dps
-from dart_math.eval import EvaluatorMathBatch
-from dart_math.exec import CodeExecCfg
-from dart_math.gen import Generator, is_dp_dars_finished
+
 from dart_math.utils import (
-    PROJ_HOME,
-    PromptTemplate,
-    get_pathname_from_name_or_path,
     init_logging,
+    get_pathname_from_name_or_path,
+    PromptTemplate,
 )
+
+from dart_math.gen import is_dp_dars_finished, Generator
+from dart_math.eval import EvaluatorMathBatch
+from dart_math.data import load_query_dps, RespSampleVLLM
+from dart_math.exec import CodeExecCfg
+from dart_math.utils import PROJ_HOME
+
 
 init_logging()
 
@@ -156,24 +158,24 @@ parser.add_argument(
 parser.add_argument(
     "--max_n_workers",
     type=int,
-    default=None,
+    default=4,
     help="The maximum number of CPU core workers to execute the code with multi-processing.",
 )
 parser.add_argument(
     "--max_n_calls",
     type=int,
-    default=None,
+    default=2,
     help="The maximum number of calls to the code execution function.\nThis could be large because there is token length limit already.\n`None` / Non-positive values mean no limit.",
 )
 parser.add_argument(
     "--trunc_len",
     type=int,
     nargs=2,
-    default=None,
+    default=(50, 50),
     help="The maximum lengths to truncate the output into the beginning and end.\n`None` / double non-positive values like `(0, 0)` mean no truncation.",
 )
 
-args, unk_args = parser.parse_known_args(sys.argv)
+args, unk_args = parser.parse_known_args()
 
 
 if args.inf_seed == -1:
@@ -245,10 +247,9 @@ logging.info("LLM loaded!")
 code_exec_cfg = (
     CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None
 )
-if code_exec_cfg:
-    code_exec_cfg.max_n_workers = args.max_n_workers
-    code_exec_cfg.max_n_calls = args.max_n_calls
-    code_exec_cfg.trunc_len = args.trunc_len
+code_exec_cfg.max_n_workers = args.max_n_workers
+code_exec_cfg.max_n_calls = args.max_n_calls
+code_exec_cfg.trunc_len = args.trunc_len
 
 
 generator = Generator(

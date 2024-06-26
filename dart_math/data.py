@@ -1,6 +1,7 @@
+import logging
 import os
+import random
 import re
-from abc import ABC, abstractmethod
 from typing import Any
 
 import datasets
@@ -74,7 +75,7 @@ class QueryDataPoint:
             setattr(self, k, v)
 
 
-class RespSampleBase(ABC):
+class RespSampleBase:
     """The response-level data point containing the query-level data point and other response-level information.
 
     Parameters
@@ -561,10 +562,11 @@ def load_query_dps(
         len(dsets) == len(max_n_trials_list) == len(min_n_corrects_list)
     ), f"Argument length inconsistency: len(dsets)={len(dsets)}, len(max_n_trials_list)={len(max_n_trials_list)}, len(min_n_corrects_list)={len(min_n_corrects_list)}"
 
-    for dataset, max_n_trials, min_n_corrects in zip(
+    for dset_id, max_n_trials, min_n_corrects in zip(
         dsets, max_n_trials_list, min_n_corrects_list
     ):
-
+        fields = dset_id.split(";")
+        dataset = fields[0]
         if os.path.exists(dataset):
             dataset = os.path.splitext(os.path.basename(dataset))[0]
             dps = load_json(dataset)
@@ -689,12 +691,55 @@ def load_query_dps(
                     )
             else:
                 raise ValueError(f"Dataset {dataset} is not properly specified ...")
+
+        chosen_dps = []
         for dp in query_dps:
             dp.max_n_trials = max_n_trials
             dp.min_n_corrects = min_n_corrects
-        all_query_dps += query_dps
+            chosen = True
+            for field in fields[1:]:
+                k, v = field.split("=")
+                if k in ["sample"]:
+                    continue
+                v = eval(v)
+                if not isinstance(v, list):
+                    v = [v]
+                if k in ["level", "domain"]:
+                    attr = getattr(dp, k)
+                    if attr not in v:
+                        chosen = False
+                        break
+                elif k in "ref_ans":
+                    if int in v:
+                        try:
+                            ref_ans = float(eval(dp.ref_ans))
+                        except Exception:
+                            chosen = False
+                            break
+                        if not ref_ans.is_integer():
+                            chosen = False
+                            break
+                    else:
+                        raise NotImplementedError(f"{v} not supported yet for {k}")
+                else:
+                    raise NotImplementedError(f"{k} not supported yet")
+            if chosen:
+                chosen_dps.append(dp)
+        for field in fields[1:]:
+            k, v = field.split("=")
+            if k != "sample":
+                continue
+            v = eval(v)
+            random.seed(42)
+            if v < 1:
+                v = int(v * len(chosen_dps))
+            chosen_dps = random.sample(chosen_dps, v)
+
+        logging.info(f"Loaded {len(chosen_dps)=} data points from {dset_id=} ")
+        all_query_dps += chosen_dps
 
     for dp in all_query_dps:
         dp.prompt_template = PromptTemplate.load_from_id_or_path(prompt_template)
+    logging.info(f"Loaded {len(all_query_dps)=} data points in total from {dsets=}")
 
     return all_query_dps
