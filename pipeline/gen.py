@@ -158,21 +158,21 @@ parser.add_argument(
 parser.add_argument(
     "--max_n_workers",
     type=int,
-    default=4,
-    help="The maximum number of CPU core workers to execute the code with multi-processing.",
+    default=None,
+    help="The maximum number of CPU core workers to execute the code with multi-processing. `None` means using default value of `code_exec_cfg`.",
 )
 parser.add_argument(
     "--max_n_calls",
     type=int,
-    default=2,
-    help="The maximum number of calls to the code execution function.\nThis could be large because there is token length limit already.\n`None` / Non-positive values mean no limit.",
+    default=None,
+    help="The maximum number of calls to the code execution function.\nThis could be large because there is token length limit already.\n`None` means using default value of `code_exec_cfg`. Non-positive values mean no limit.",
 )
 parser.add_argument(
     "--trunc_len",
     type=int,
     nargs=2,
-    default=(50, 50),
-    help="The maximum lengths to truncate the output into the beginning and end.\n`None` / double non-positive values like `(0, 0)` mean no truncation.",
+    default=None,
+    help="The maximum lengths to truncate the output into the beginning and end.\n`None` means using default value of `code_exec_cfg`. Double non-positive values like `(0, 0)` mean no truncation. ",
 )
 
 args, unk_args = parser.parse_known_args()
@@ -247,9 +247,15 @@ logging.info("LLM loaded!")
 code_exec_cfg = (
     CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None
 )
-code_exec_cfg.max_n_workers = args.max_n_workers
-code_exec_cfg.max_n_calls = args.max_n_calls
-code_exec_cfg.trunc_len = args.trunc_len
+if code_exec_cfg:
+    if args.max_n_workers is not None:
+        code_exec_cfg.max_n_workers = args.max_n_workers
+    if args.max_n_calls is not None:
+        code_exec_cfg.max_n_calls = args.max_n_calls
+    if args.trunc_len is not None:
+        code_exec_cfg.trunc_len = args.trunc_len
+
+print(f"{code_exec_cfg.__dict__=}")
 
 
 generator = Generator(
