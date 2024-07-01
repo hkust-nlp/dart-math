@@ -159,20 +159,20 @@ parser.add_argument(
     "--max_n_workers",
     type=int,
     default=None,
-    help="The maximum number of CPU core workers to execute the code with multi-processing. `None` means using default value of `code_exec_cfg`.",
+    help="The maximum number of CPU core workers to execute the code with multi-processing. Default as `None`, meaning using default value of `code_exec_cfg`. ",
 )
 parser.add_argument(
     "--max_n_calls",
     type=int,
     default=None,
-    help="The maximum number of calls to the code execution function.\nThis could be large because there is token length limit already.\n`None` means using default value of `code_exec_cfg`. Non-positive values mean no limit.",
+    help="The maximum number of calls to the code execution function.\nThis could be large because there is token length limit already.\nDefault as `None`, meaning using default value of `code_exec_cfg`.  Non-positive values mean no limit.",
 )
 parser.add_argument(
     "--trunc_len",
     type=int,
     nargs=2,
     default=None,
-    help="The maximum lengths to truncate the output into the beginning and end.\n`None` means using default value of `code_exec_cfg`. Double non-positive values like `(0, 0)` mean no truncation. ",
+    help="The maximum lengths to truncate the output into the beginning and end.\nDefault as `None`, meaning using default value of `code_exec_cfg`. Double non-positive values like `(0, 0)` mean no truncation. ",
 )
 
 args, unk_args = parser.parse_known_args()
@@ -255,7 +255,7 @@ if code_exec_cfg:
     if args.trunc_len is not None:
         code_exec_cfg.trunc_len = args.trunc_len
 
-print(f"{code_exec_cfg.__dict__=}")
+    print(f"{code_exec_cfg.__dict__=}")
 
 
 generator = Generator(

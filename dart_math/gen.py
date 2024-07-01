@@ -148,10 +148,15 @@ class Generator:
         self.sampling_params = sampling_params
         self.resp_sample_cls = resp_sample_cls
         self.batch_evaluator = batch_evaluator
+
         self.code_exec_cfg = (
-            code_exec_cfg
-            if isinstance(code_exec_cfg, CodeExecCfg)
-            else CodeExecCfg.load_from_id_or_path(code_exec_cfg)
+            (
+                code_exec_cfg
+                if isinstance(code_exec_cfg, CodeExecCfg)
+                else CodeExecCfg.load_from_id_or_path(code_exec_cfg)
+            )
+            if code_exec_cfg is not None
+            else None
         )
 
         if (
