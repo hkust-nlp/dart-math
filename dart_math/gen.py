@@ -387,7 +387,8 @@ class Generator:
                         continue  # Skip the stopped data point
                     # Still have data points to generate
                     sched_finished = False
-                    dp.n_trials += 1  # For `dp_stop_criteria`
+                    # Count # of trials for `dp_stop_criteria`
+                    dp.n_trials += self.sampling_params.best_of
                     batch_dps.append(dp)
 
                     # Make the input string
