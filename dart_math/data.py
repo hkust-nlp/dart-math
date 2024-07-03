@@ -590,8 +590,9 @@ def load_query_dps(
                         )
                     )
             elif dataset in ["gsm8k-test", "gsm8k-train"]:
+                split = dataset.split("-")[-1]
                 dps = datasets.load_dataset(
-                    "gsm8k", "main", split="test", trust_remote_code=True
+                    "gsm8k", "main", split=split, trust_remote_code=True
                 )
                 for dp in dps:
                     query_dps.append(
