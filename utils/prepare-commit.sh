@@ -14,15 +14,15 @@ echo "${todo_nbs}" | xargs -I {} sh -c 'echo "Cleaning {}"; nbdev_clean --fname 
 echo "Running nbdev_prepare..."
 nbdev_prepare
 
-pipeline_dir="pipeline"
-if [ -d "${pipeline_dir}" ]; then
-    for f in ${todo_nbs}; do
-        if [[ "${f}" == "${pipeline_dir}/"*".ipynb" ]]; then
-            jupyter nbconvert --to python --no-prompt --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags dev "${f}"
-        fi
-    done
-    black "${pipeline_dir}"
-
-fi
+# DEFUNCT -- Please convert .ipynb to .py manually
+# pipeline_dir="pipeline"
+# if [ -d "${pipeline_dir}" ]; then
+#     for f in ${todo_nbs}; do
+#         if [[ "${f}" == "${pipeline_dir}/"*".ipynb" ]]; then
+#             jupyter nbconvert --to python --no-prompt --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags dev "${f}"
+#         fi
+#     done
+#     black "${pipeline_dir}"
+# fi
 
 git status
