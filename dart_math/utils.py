@@ -199,7 +199,7 @@ class PromptTemplate:
 
     def make_qa_pair(self, query: str, response: str) -> str:
         """Make a QA pair of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}{response}`."""
-        return self.make_prefix_prompt(query) + response
+        return f"{self.query_prompt}{query}{self.prompt_after_query}{self.resp_prompt}{self.prompt_before_resp}{response}"
 
     def make_full_prompt(self, query: str, eg_qas: list[tuple[str, str]] = []) -> str:
         """Make full prompt as input to the model.

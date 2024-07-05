@@ -193,6 +193,12 @@ if __name__ == "__main__":
         else PromptTemplate.load_from_id_or_path(args.prompt_template)
     )
 
+    query_dps = load_query_dps(args.datasets, args.max_n_trials, args.min_n_corrects)
+    logging.info(f"Loaded {len(query_dps)} query data points.")
+    # TODO: response-wise prompt template
+    for query_dp in query_dps:
+        query_dp.prompt_template = prompt_template
+
     if args.temperature <= 1e-5:
         args.temperature = 0
         args.n_paths = 1
@@ -209,12 +215,6 @@ if __name__ == "__main__":
         skip_special_tokens=True,
         seed=args.inf_seed,
     )
-
-    query_dps = load_query_dps(args.datasets, args.max_n_trials, args.min_n_corrects)
-    logging.info(f"Loaded {len(query_dps)} query data points.")
-    # TODO: response-wise prompt template
-    for query_dp in query_dps:
-        query_dp.prompt_template = prompt_template
 
     sampling_params.stop = [
         prompt_template.query_prompt.strip(),

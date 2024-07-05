@@ -258,7 +258,7 @@ ICL_EGS["math-test"] = [
     ),
     (
         "In Mr. Abraham's class, $10$ of the $15$ students received an $A$ on the latest exam. If the same ratio of students received an $A$ on Mrs. Berkeley's latest exam, and if Mrs. Berkeley has $24$ students total, how many students in Mrs. Berkeley's class received an $A$?",
-        """If $10$ of $15$ students received an $A$, then the ratio of students receiving an $A$ to students not receiving an $A$ is $\\frac{10}{15}$, or $\\frac{2}{3}$. Let $x$ be the number of students in Mrs. Berkeley's class who received an $A$. Since the ratio is consistent across the two classes, $\\frac{2}{3} = \\frac{x}{24}$. Cross-multiplying yields $x = \\frac{24\cdot 2}{3}$, so, by simplification, we can see that 16 of Mrs. Berkeley's students must have received an $A$.\nThe answer is 16""",
+        """If $10$ of $15$ students received an $A$, then the ratio of students receiving an $A$ to students not receiving an $A$ is $\\frac{10}{15}$, or $\\frac{2}{3}$. Let $x$ be the number of students in Mrs. Berkeley's class who received an $A$. Since the ratio is consistent across the two classes, $\\frac{2}{3} = \\frac{x}{24}$. Cross-multiplying yields $x = \\frac{24\\cdot 2}{3}$, so, by simplification, we can see that 16 of Mrs. Berkeley's students must have received an $A$.\nThe answer is 16""",
     ),
     (
         "Find the value of the first term in the geometric sequence $a,b,c,32,64$.",
@@ -476,7 +476,7 @@ def extract_ans_from_math_sol(string):
                 break
         i += 1
 
-    if right_brace_idx == None:
+    if right_brace_idx is None:
         retval = None
     else:
         retval = string[idx : right_brace_idx + 1]
@@ -509,6 +509,7 @@ def load_query_dps(
     max_n_trials: int | list[int] = 1,
     min_n_corrects: int | list[int] = 0,
     prompt_template: str = "alpaca",
+    n_shots: int = -1,
 ) -> list[QueryDataPoint]:
     """Load `dataset`(s) as `QueryDataPoint`s.
     If needed, please add `dataset`s here following the format of the existing datasets,
@@ -531,6 +532,10 @@ def load_query_dps(
 
     prompt_template : str, default: "alpaca"
         ID / Path of the prompt template.
+
+    n_shots: int, default: -1
+        Number of shots of examples used in ICL for the corresponding `dataset`.
+        `None` / Negative values mean adaptive to the model and dataset. Please check `dart_math.gen.get_n_shots` for preset settings before using this feature.
 
     Returns
     -------
@@ -741,6 +746,7 @@ def load_query_dps(
 
     for dp in all_query_dps:
         dp.prompt_template = PromptTemplate.load_from_id_or_path(prompt_template)
+        dp.n_shots = n_shots  # Can not determine the number of shots yet from the dataset only withou the model
     logging.info(f"Loaded {len(all_query_dps)=} data points in total from {dsets=}")
 
     return all_query_dps
