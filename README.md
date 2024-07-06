@@ -365,6 +365,41 @@ ones mentioned above:
   [`Generator`](https://hkust-nlp.github.io/dart-math/gen.html#generator));
 - …
 
+## Contribution Guidelines
+
+### File Structure
+
+``` tree
+dart-math
+├── data
+├── cfgs # Configurations
+├── utils # Repository utilities
+├── dart_math # Package code for common utilities
+├── nbs # Notebooks and other files to run tests and generate documentation with https://nbdev.fast.ai
+├── pipeline # Reusable (Python / Shell) scripts or notebooks
+└── scripts # Setting-specific scripts
+```
+
+### Checklist Before Commit
+
+#### [`prepare-commit.sh`](utils/prepare-commit.sh)
+
+Run the [`prepare-commit.sh`](utils/prepare-commit.sh) to clean the
+notebooks and export scripts for pipeline notebooks, generate
+documentation, run tests, render README if needed:
+
+``` shell
+bash utils/prepare-commit.sh
+```
+
+Please refer to the comments in the script for how it works.
+
+#### Manual Modification List
+
+- Add `if __name__ == "__main__":` to scripts that might use vLLM tensor
+  parallelism
+  - [`gen.py`](pipeline/gen.py)
+
 ## Acknowlegements
 
 Thanks to:
