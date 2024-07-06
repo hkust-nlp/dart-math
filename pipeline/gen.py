@@ -175,6 +175,12 @@ if __name__ == "__main__":
 
     args, unk_args = parser.parse_known_args()
 
+    for arg_str in unk_args:
+        if arg_str.startswith("--f="):
+            continue  # For Jupyter notebook
+        else:
+            raise ValueError(f"Unknown arguments: {unk_args}")
+
     if args.inf_seed == -1:
         args.inf_seed = int(time.time() * 10**6) % 2**32
         logging.warning(f"args.inf_seed=-1 -> Setting {args.inf_seed=}")

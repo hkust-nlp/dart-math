@@ -274,7 +274,7 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --model_name_or_path "hkust-nlp/dart-math-mistral-7b-prop2diff" \
     --datasets "math-test" "gsm8k-test" "mwpbench/college-math-test" "deepmind-mathematics" \
         "olympiadbench/OE_TO_maths_en_COMP" "theoremqa" \
-    --max_new_tokens 2048 --temperature 0 --top_p 0.95 \
+    --max_new_toks 2048 --temperature 0 --top_p 0.95 \
     --prompt_template "alpaca" --n_shots -1 \
     --inf_seed -1 \
     --max_n_trials 1
@@ -316,7 +316,7 @@ for gpu_ids in "${gpu_ids_list[@]}"; do
         --gen_save_path "data/res/${exp_name}.jsonl" \
         --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
         --datasets "math-train" "gsm8k-train" \
-        --max_new_tokens 2048 --temperature 1.6 --top_p 0.95 \
+        --max_new_toks 2048 --temperature 1.6 --top_p 0.95 \
         --prompt_template "deepseekmath" --n_shots 0 \
         --inf_seed -1 \
         --min_n_corrects "${min_n_corrects_per_gpu}" --max_n_trials 0 \
