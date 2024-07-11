@@ -8,21 +8,9 @@ from math import isclose
 from typing import Any, Callable
 
 from pebble import ProcessPool
-
 # Useful for `eval` despite not appearing in the code
-from sympy import (
-    E,
-    FiniteSet,
-    I,
-    Intersection,
-    Interval,
-    Matrix,
-    N,
-    Union,
-    pi,
-    simplify,
-    sqrt,
-)
+from sympy import (E, FiniteSet, I, Intersection, Interval, Matrix, N, Union,
+                   pi, simplify, sqrt)
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.latex.errors import LaTeXParsingError
 from sympy.parsing.sympy_parser import parse_expr
@@ -1035,8 +1023,21 @@ class EvaluatorMath(EvaluatorBase):
 
         try:
             diff = simplify(a - b)
-            if diff == 0 or all(element == 0 for element in diff):  # Matrix
-                return True
+            # For non-symmetric operations like subtraction between sets
+            diff_rev = simplify(b - a)
+
+            if hasattr(diff, "__iter__") and hasattr(
+                diff_rev, "__iter__"
+            ):  # If diff is iterable (e.g. Matrix)
+                if all(element == 0 for element in diff) and all(
+                    element == 0 for element in diff_rev
+                ):
+                    return True
+            else:
+                if (
+                    not diff and not diff_rev
+                ):  # use `not` for non-zero values like `sympy.EmptySet`
+                    return True
         except Exception:
             pass
 
