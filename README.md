@@ -400,7 +400,7 @@ Please refer to the comments in the script for how it works.
   parallelism
   - [`gen.py`](pipeline/gen.py)
 
-## Acknowlegements
+## Acknowledgements
 
 Thanks to:
 
@@ -411,6 +411,7 @@ Thanks to:
 - [`functionary`](https://github.com/MeetKai/functionary/tree/main/functionary/train/packing)
   for reference code about [sequence
   packing](https://hkust-nlp.github.io/dart-math/train.html#sequence-packing).
+- @HYZ17 for extensive tests and helpful suggestions.
 
 ## Citation
 
