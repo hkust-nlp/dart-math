@@ -6,11 +6,10 @@
 > Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving
 
 📝
-[Paper](https://tongyx361.github.io/assets/dart-math/paper-dart-math.pdf) \| 🤗
-[Datasets &
-Models](https://huggingface.co/collections/hkust-nlp/dart-math-665704599b35de59f8fdf6c1)
-\| 🐱 [Code](https://github.com/hkust-nlp/dart-math) \| 🐦 [X
-(Twitter)](TODO)
+[Paper@GitHub](https://tongyx361.github.io/assets/dart-math/paper-dart-math.pdf) \| 🤗
+[Datasets&Models@HF](https://huggingface.co/collections/hkust-nlp/dart-math-665704599b35de59f8fdf6c1)
+\| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math) \| 🐦
+[Thread@X(Twitter)](https://x.com/tongyx361/status/1811413243350454455)
 
 <div align="center">
 
