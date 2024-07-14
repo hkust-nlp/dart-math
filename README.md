@@ -380,8 +380,8 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
 ```
 
 For other general inference settings, please modify the options related
-to the [`code_exec_cfg` attribute of
-\[`Generator`\](https://hkust-nlp.github.io/dart-math/gen.html#generator)](https://hkust-nlp.github.io/dart-math/gen.html#:~:text=means%20no%20evaluation.-,code_exec_cfg,-dart_math.exec.CodeExecCfg)
+to the [`Generator.code_exec_cfg`
+attribute](https://hkust-nlp.github.io/dart-math/gen.html#:~:text=means%20no%20evaluation.-,code_exec_cfg,-dart_math.exec.CodeExecCfg)
 in the command or the
 [script](https://github.com/hkust-nlp/dart-math/blob/main/pipeline/gen.py).
 
