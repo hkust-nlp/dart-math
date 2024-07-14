@@ -274,7 +274,7 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --model_name_or_path "hkust-nlp/dart-math-mistral-7b-prop2diff" \
     --datasets "math-test" "gsm8k-test" "mwpbench/college-math-test" "deepmind-mathematics" \
         "olympiadbench/OE_TO_maths_en_COMP" "theoremqa" \
-    --max_new_toks 2048 --temperature 0 --top_p 0.95 \
+    --max_new_toks 2048 --temperature 0 \
     --prompt_template "alpaca" --n_shots -1 \
     --inf_seed -1 \
     --max_n_trials 1
@@ -360,10 +360,30 @@ website](https://hkust-nlp.github.io/dart-math/quick-start.html).
 The `dart-math` package provides the following useful features besides
 ones mentioned above:
 
-- **Tool-integrated reasoning**: reasoning in natural language
-  interleaved with Python code (see the `code_exec_cfg` attribute of
-  [`Generator`](https://hkust-nlp.github.io/dart-math/gen.html#generator));
-- …
+### **Tool-integrated reasoning**: reasoning in natural language interleaved with Python code
+
+Example command to evaluate DeepSeekMath-7B-RL with tool-integrated
+reasoning (following the DeepSeekMath offical setting):
+
+``` shell
+CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
+    --gen_save_path "data/res/dsmath-7b-rl-tool-math-test.jsonl" \
+    --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
+    --datasets "math-test" \
+    --max_new_toks 2048 --temperature 0 \
+    --prompt_template "deepseekmath-tool" --n_shots 0 \
+    --max_n_calls 1 --trunc_len 50 50 \
+    --inf_seed -1 \
+    --max_n_trials 1
+# Reproduced performance (with our evaluator): 56.08%
+# (58.8% reported originally with DeepSeekMath evaluator)
+```
+
+For other general inference settings, please modify the options related
+to the [`code_exec_cfg` attribute of
+\[`Generator`\](https://hkust-nlp.github.io/dart-math/gen.html#generator)](https://hkust-nlp.github.io/dart-math/gen.html#:~:text=means%20no%20evaluation.-,code_exec_cfg,-dart_math.exec.CodeExecCfg)
+in the command or the
+[script](https://github.com/hkust-nlp/dart-math/blob/main/pipeline/gen.py).
 
 ## Contribution Guidelines
 
