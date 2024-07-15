@@ -119,7 +119,7 @@ performance.
 **out-of-domain**. Performance here are of models fine-tuned from
 [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1), except
 for Xwin-Math-V1.1 based on
-[LLaMA2-7B](https://huggingface.co/meta-llama/Llama-2-7b-hf).
+[Llama2-7B](https://huggingface.co/meta-llama/Llama-2-7b-hf).
 **Bold**/*Italic* means the best/second best score here.</sup>
 
 ## `DARS` – Difficulty-Aware Rejection Sampling
