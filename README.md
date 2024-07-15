@@ -40,12 +40,18 @@ slightly shifted and downsampled for clarity. </sup>
 
 </div>
 
-| Dataset                | Method         | \# of Samples |                                     Download                                     |
-|:-----------------------|:---------------|--------------:|:--------------------------------------------------------------------------------:|
-| `DART-Math-Uniform`    | DARS-Unifrom   |          591k |  🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-uniform)   |
-| `DART-Math-Hard`       | DARS-Prop2Diff |          585k |    🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-hard)    |
-| `DART-Math-Pool-MATH`  | DARS-Unifrom   |         1615k | 🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-math)  |
-| `DART-Math-Pool-GSM8K` | DARS-Unifrom   |         2739k | 🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-gsm8k) |
+| Dataset                | Setting   | \# of Samples | [MATH](https://huggingface.co/datasets/hendrycks/competition_math) | [GSM8K](https://huggingface.co/datasets/gsm8k) | [College](https://github.com/hkust-nlp/dart-math/tree/main/data/dsets/mwpbench/college-math-test.jsonl) |                                     Download                                     |
+|:-----------------------|:----------|--------------:|-------------------------------------------------------------------:|-----------------------------------------------:|--------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------:|
+| `DART-Math-Uniform`    | Unifrom   |          591k |                                                               52.9 |                                       **88.2** |                                                                                                    40.1 |  🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-uniform)   |
+| `DART-Math-Hard`       | Prop2Diff |          585k |                                                           **53.6** |                                           86.8 |                                                                                                **40.7** |    🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-hard)    |
+| `DART-Math-Pool-MATH`  | –         |         1615k |                                                                  – |                                              – |                                                                                                       – | 🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-math)  |
+| `DART-Math-Pool-GSM8K` | –         |         2739k |                                                                  – |                                              – |                                                                                                       – | 🤗 [HuggingFace](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-gsm8k) |
+
+<sup>MATH and GSM8K are **in-domain**, while College(Math) is
+**out-of-domain**. Performance here are of `DART-Math` models fine-tuned
+from
+[DeepSeekMath-7B](https://huggingface.co/deepseek-ai/deepseek-math-7b-base).
+**Bold** means the best score on the respective base model here.</sup>
 
 | Model                              | [MATH](https://huggingface.co/datasets/hendrycks/competition_math) | [GSM8K](https://huggingface.co/datasets/gsm8k) | [CollegeMath](https://github.com/hkust-nlp/dart-math/tree/main/data/dsets/mwpbench/college-math-test.jsonl) |                                     Download                                      |
 |:-----------------------------------|-------------------------------------------------------------------:|-----------------------------------------------:|------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|
@@ -57,6 +63,10 @@ slightly shifted and downsampled for clarity. </sup>
 | `DART-Math-Mistral-7B` (Prop2Diff) |                                                           **45.5** |                                           81.1 |                                                                                                    **29.4** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-mistral-7b-prop2diff) |
 | `DART-Math-Llama3-8B` (Uniform)    |                                                               45.3 |                                       **82.5** |                                                                                                        27.1 |  🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-8b-uniform)   |
 | `DART-Math-Llama3-8B` (Prop2Diff)  |                                                           **46.6** |                                           81.1 |                                                                                                    **28.8** | 🤗 [HuggingFace](https://huggingface.co/hkust-nlp/dart-math-llama3-8b-prop2diff)  |
+
+<sup>MATH and GSM8K are <b>in-domain</b>, while CollegeMath is
+<b>out-of-domain</b>. **Bold** means the best score on the respective
+base model here.</sup>
 
 ## `DART-Math` Models: SOTA on Various In-Domain and Out-of-Domain Benchmarks
 
@@ -93,17 +103,24 @@ Most of previous datasets are **constructed with ChatGPT**, and many of
 them are **not open-source**, especially for ones of the best
 performance.
 
-| Math SFT Dataset                                                                   | \# of Samples (k) | Synthesis Agent(s)  |                                 Open-Source                                 |
-|:-----------------------------------------------------------------------------------|------------------:|:--------------------|:---------------------------------------------------------------------------:|
-| [WizardMath](https://arxiv.org/abs/2308.09583)                                     |                96 | GPT-4               |                                      ✗                                      |
-| [MetaMathQA](https://arxiv.org/abs/2309.12284)                                     |               395 | GPT-3.5             |          [✓](https://huggingface.co/datasets/meta-math/MetaMathQA)          |
-| [MMIQC](https://arxiv.org/abs/2401.09003)                                          |              2294 | GPT-4+GPT-3.5+Human |             [✓](https://huggingface.co/datasets/Vivacem/MMIQC)              |
-| [Orca-Math](https://arxiv.org/abs/2402.14830)                                      |               200 | GPT-4               | [✓](https://huggingface.co/datasets/microsoft/orca-math-word-problems-200k) |
-| [Xwin-Math-V1.1](https://arxiv.org/abs/2403.04706)                                 |              1440 | GPT-4               |                                      ✗                                      |
-| [KPMath-Plus](https://arxiv.org/abs/2403.02333)                                    |              1576 | GPT-4               |                                      ✗                                      |
-| [MathScaleQA](https://arxiv.org/abs/2403.02884)                                    |              2021 | GPT-3.5+Human       |                                      ✗                                      |
-| [`DART-Math-Uniform`](https://huggingface.co/datasets/hkust-nlp/dart-math-uniform) |               591 | DeepSeekMath-7B-RL  |      [✓](https://huggingface.co/datasets/hkust-nlp/dart-math-uniform)       |
-| [`DART-Math-Hard`](https://huggingface.co/datasets/hkust-nlp/dart-math-hard)       |               585 | DeepSeekMath-7B-RL  |        [✓](https://huggingface.co/datasets/hkust-nlp/dart-math-hard)        |
+| Math SFT Dataset                                                                   | \# of Samples | [MATH](https://huggingface.co/datasets/hendrycks/competition_math) | [GSM8K](https://huggingface.co/datasets/gsm8k) | [College](https://github.com/hkust-nlp/dart-math/tree/main/data/eval-dsets/mwpbench/college-math-test.jsonl) | Synthesis Agent(s)      |                                 Open-Source                                 |
+|:-----------------------------------------------------------------------------------|--------------:|-------------------------------------------------------------------:|-----------------------------------------------:|-------------------------------------------------------------------------------------------------------------:|:------------------------|:---------------------------------------------------------------------------:|
+| [WizardMath](https://arxiv.org/abs/2308.09583)                                     |           96k |                                                               32.3 |                                           80.4 |                                                                                                         23.1 | GPT-4                   |                                      ✗                                      |
+| [MetaMathQA](https://arxiv.org/abs/2309.12284)                                     |          395k |                                                               29.8 |                                           76.5 |                                                                                                         19.3 | GPT-3.5                 |          [✓](https://huggingface.co/datasets/meta-math/MetaMathQA)          |
+| [MMIQC](https://arxiv.org/abs/2401.09003)                                          |     **2294k** |                                                               37.4 |                                           75.4 |                                                                                                       *28.5* | **GPT-4+GPT-3.5+Human** |           [**✓**](https://huggingface.co/datasets/Vivacem/MMIQC)            |
+| [Orca-Math](https://arxiv.org/abs/2402.14830)                                      |          200k |                                                                  – |                                              – |                                                                                                            – | GPT-4                   | [✓](https://huggingface.co/datasets/microsoft/orca-math-word-problems-200k) |
+| [Xwin-Math-V1.1](https://arxiv.org/abs/2403.04706)                                 |     **1440k** |                                                             *45.5* |                                       **84.9** |                                                                                                         27.6 | **GPT-4**               |                                    **✗**                                    |
+| [KPMath-Plus](https://arxiv.org/abs/2403.02333)                                    |     **1576k** |                                                           **46.8** |                                           82.1 |                                                                                                           -– | **GPT-4**               |                                    **✗**                                    |
+| [MathScaleQA](https://arxiv.org/abs/2403.02884)                                    |         2021k |                                                               35.2 |                                           74.8 |                                                                                                         21.8 | GPT-3.5+Human           |                                      ✗                                      |
+| [`DART-Math-Uniform`](https://huggingface.co/datasets/hkust-nlp/dart-math-uniform) |      **591k** |                                                               43.5 |                                         *82.6* |                                                                                                         26.9 | **DeepSeekMath-7B-RL**  |    [**✓**](https://huggingface.co/datasets/hkust-nlp/dart-math-uniform)     |
+| [`DART-Math-Hard`](https://huggingface.co/datasets/hkust-nlp/dart-math-hard)       |      **585k** |                                                             *45.5* |                                           81.1 |                                                                                                     **29.4** | **DeepSeekMath-7B-RL**  |      [**✓**](https://huggingface.co/datasets/hkust-nlp/dart-math-hard)      |
+
+<sup>MATH and GSM8K are **in-domain**, while College(Math) is
+**out-of-domain**. Performance here are of models fine-tuned from
+[Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1), except
+for Xwin-Math-V1.1 based on
+[LLaMA2-7B](https://huggingface.co/meta-llama/Llama-2-7b-hf).
+**Bold**/*Italic* means the best/second best score here.</sup>
 
 ## `DARS` – Difficulty-Aware Rejection Sampling
 
