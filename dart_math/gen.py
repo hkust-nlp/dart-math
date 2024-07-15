@@ -242,12 +242,14 @@ class Generator:
                     ):
                         req_output.finish_reason = "call"
                         continue
-                    max_model_len = (
-                        self.llm.llm_engine.scheduler.scheduler_config.max_model_len
+                    sched_cfg = (  # vLLM version back-compatibility
+                        self.llm.llm_engine.scheduler.scheduler_config
+                        if (hasattr(self.llm.llm_engine, "scheduler"))
+                        else self.llm.llm_engine.scheduler_config
                     )
                     # All tokens
                     if len(gen_path.token_ids) + len(req_output.prompt_token_ids) >= (
-                        0.8 * max_model_len
+                        0.8 * sched_cfg.max_model_len
                     ):
                         req_output.finish_reason = "total-length"
                         continue
