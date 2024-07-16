@@ -8,9 +8,21 @@ from math import isclose
 from typing import Any, Callable
 
 from pebble import ProcessPool
+
 # Useful for `eval` despite not appearing in the code
-from sympy import (E, FiniteSet, I, Intersection, Interval, Matrix, N, Union,
-                   pi, simplify, sqrt)
+from sympy import (
+    E,
+    FiniteSet,
+    I,
+    Intersection,
+    Interval,
+    Matrix,
+    N,
+    Union,
+    pi,
+    simplify,
+    sqrt,
+)
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.latex.errors import LaTeXParsingError
 from sympy.parsing.sympy_parser import parse_expr
@@ -397,7 +409,11 @@ UNITS = [
 ]
 
 
-DEF_REL_TOL = 1e-3  # Mainly for percentage comparison
+DEF_REL_TOL = 1e-9  # Following `is_close`
+# Highest precision: `sys.float_info.epsilon == 2.220446049250313e-16`
+DEF_ABS_TOL = 1e-8  # Following OlympiadBench
+# https://github.com/OpenBMB/OlympiadBench/blob/1289b12c1067dfe01210f7153bd9ffaaddd42ed5/inference/code/math_judger.py#L33
+DEF_PERCENT_REL_TOL = 1e-3
 
 
 def has_non_ascii(s):
@@ -700,6 +716,10 @@ class EvaluatorMath(EvaluatorBase):
         Whether to include percentage comparisons.
     rel_tol : float, default: DEF_REL_TOL
         The relative tolerance for numerical comparisons.
+    abs_tol : float, default: DEF_ABS_TOL
+        The absolute tolerance for numerical comparisons. Necessary for precision issues.
+    percent_rel_tol : float, default: DEF_PERCENT_REL_TOL
+        The relative tolerance for percentage comparisons. Relative for different surface forms (e.g. 99% v.s. 0.99).
     ascii_only : bool, default: True
         Only allowing ASCII characters
     """
@@ -709,6 +729,8 @@ class EvaluatorMath(EvaluatorBase):
         use_orig_eq_for_olympiadbench: bool = True,
         include_percentage: bool = True,
         rel_tol: float = DEF_REL_TOL,
+        abs_tol: float = DEF_ABS_TOL,
+        percent_rel_tol: float = DEF_PERCENT_REL_TOL,
         ascii_only: bool = True,
     ):
         EvaluatorBase.__init__(self)
@@ -720,6 +742,8 @@ class EvaluatorMath(EvaluatorBase):
 
         self.include_percentage = include_percentage
         self.rel_tol = rel_tol
+        self.abs_tol = abs_tol
+        self.percent_rel_tol = percent_rel_tol
         self.ascii_only = ascii_only
 
     def eval(self, sample: RespSampleBase) -> tuple[str, bool]:
@@ -836,22 +860,12 @@ class EvaluatorMath(EvaluatorBase):
         pred_num = parse(float, pred_str, pred_parse_errs)
         if ref_num is None:
             ref_num = parse(float, ref_str, ref_parse_errs)
-        if pred_num is not None and ref_num is not None:
-            if 0 < pred_num < 1 or 1 < pred_num < 100 and self.include_percentage:
-                ref_results = [
-                    num for num in [ref_num / 100, ref_num, ref_num * 100] if num < 100
-                ]
-            else:
-                ref_results = [ref_num]
-            for item in ref_results:
-                if self.rel_tol > 0:
-                    if isclose(item, pred_num, rel_tol=self.rel_tol):
-                        return True
-                else:
-                    if item == pred_num:
-                        return True
+        num_eq = self.is_num_eq(ref_num, pred_num)
+        if num_eq is not None:
+            return num_eq
 
         # 3. Symbolically equal (w/ SymPy and antlr4)
+        # Return `True` if the two expressions can be interpreted as equal in **any** unified form.
         # NOTE: possible ambiguity 1,234 -> (1,234) / 1234 ?
 
         # 3.1 Python object
@@ -870,7 +884,7 @@ class EvaluatorMath(EvaluatorBase):
         if (
             pred_spobj is not None
             and ref_spobj is not None
-            and self.sym_eq(pred_spobj, ref_spobj)
+            and self.is_sym_eq(pred_spobj, ref_spobj)
         ):
             return True
 
@@ -880,7 +894,7 @@ class EvaluatorMath(EvaluatorBase):
         if (
             pred_spobj is not None
             and ref_spobj is not None
-            and self.sym_eq(pred_spobj, ref_spobj)
+            and self.is_sym_eq(pred_spobj, ref_spobj)
         ):
             return True
 
@@ -891,21 +905,21 @@ class EvaluatorMath(EvaluatorBase):
         if (
             pred_spobj is not None
             and ref_spobj is not None
-            and self.sym_eq(pred_spobj, ref_spobj)
+            and self.is_sym_eq(pred_spobj, ref_spobj)
         ):
             return True
 
         if (
             pred_spobj is not None
             and ref_obj is not None
-            and self.sym_eq(pred_spobj, ref_obj)
+            and self.is_sym_eq(pred_spobj, ref_obj)
         ):
             return True
 
         if (
             pred_obj is not None
             and ref_spobj is not None
-            and self.sym_eq(pred_obj, ref_spobj)
+            and self.is_sym_eq(pred_obj, ref_spobj)
         ):
             return True
 
@@ -921,6 +935,34 @@ class EvaluatorMath(EvaluatorBase):
             raise ValueError(expr_parse_errs)
         else:
             return False
+
+    def could_be_percent(self, v) -> bool:
+        """Check if a value could be a percentage."""
+        return 0 < v < 1 or 1 < v < 100
+
+    def is_num_eq(self, ref_num, pred_num) -> bool | None:
+        """Compare two numbers with specified feautures:
+        - relative tolerance
+        - flexible percentage surface forms
+        """
+        if ref_num is None or pred_num is None:
+            return None
+        if isclose(ref_num, pred_num, rel_tol=self.rel_tol, abs_tol=self.abs_tol):
+            return True
+
+        if self.include_percentage and self.could_be_percent(pred_num):
+            percent_ref_nums = [
+                num
+                for num in [ref_num / 100, ref_num * 100]
+                if self.could_be_percent(num)
+            ]
+            for item in percent_ref_nums:
+                # "For the values to be considered close, the difference between them must be smaller than at least one of the tolerances."
+                if isclose(
+                    item, pred_num, rel_tol=self.percent_rel_tol, abs_tol=self.abs_tol
+                ):
+                    return True
+        return None
 
     def norm_ans_str(self, ans: str) -> str:
         """Normalize answer string for **all kinds** of answers."""
@@ -1013,8 +1055,11 @@ class EvaluatorMath(EvaluatorBase):
 
         return pfx + sfx
 
-    def sym_eq(self, a: Any, b: Any) -> bool:
+    def is_sym_eq(self, a: Any, b: Any) -> bool | None:
         """Compare two objects symbolically."""
+        if a is None or b is None:
+            return None
+
         try:
             if a == b:
                 return True
@@ -1042,12 +1087,14 @@ class EvaluatorMath(EvaluatorBase):
             pass
 
         try:
-            if isclose(N(eval(str(a))), N(eval(str(b))), rel_tol=self.rel_tol):
+            v_a, v_b = (N(eval(str(v))) for v in [a, b])
+            num_eq = self.is_num_eq(v_a, v_b)
+            if num_eq:
                 return True
         except Exception:
             pass
 
-        return False
+        return None
 
     def norm_str2date_time(self, string: str):
         """Normalize date or time string to a standard and precise format."""
@@ -1336,6 +1383,10 @@ class EvaluatorMathBatch(EvaluatorMath, EvaluatorBatchBase):
         Whether to include percentage comparisons.
     rel_tol : float, default: DEF_REL_TOL
         The relative tolerance for numerical comparisons.
+    abs_tol : float, default: DEF_ABS_TOL
+        The absolute tolerance for numerical comparisons. Necessary for precision issues.
+    percent_rel_tol : float, default: DEF_PERCENT_REL_TOL
+        The absolute tolerance for percentage comparisons.
     ascii_only : bool, default: True
         Only allowing ASCII characters
     """
@@ -1345,6 +1396,8 @@ class EvaluatorMathBatch(EvaluatorMath, EvaluatorBatchBase):
         use_orig_eq_for_olympiadbench: bool = True,
         include_percentage: bool = True,
         rel_tol: float = DEF_REL_TOL,
+        abs_tol: float = DEF_ABS_TOL,
+        percent_rel_tol: float = DEF_PERCENT_REL_TOL,
         ascii_only: bool = True,
         timeout: int = DEF_TIMEOUT,
     ):
@@ -1354,6 +1407,8 @@ class EvaluatorMathBatch(EvaluatorMath, EvaluatorBatchBase):
             use_orig_eq_for_olympiadbench=use_orig_eq_for_olympiadbench,
             include_percentage=include_percentage,
             rel_tol=rel_tol,
+            abs_tol=abs_tol,
+            percent_rel_tol=percent_rel_tol,
             ascii_only=ascii_only,
         )
         EvaluatorBatchBase.__init__(self, timeout=timeout)
