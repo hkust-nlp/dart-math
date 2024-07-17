@@ -10,7 +10,8 @@
 [Datasets&Models@HF](https://huggingface.co/collections/hkust-nlp/dart-math-665704599b35de59f8fdf6c1)
 \| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math) \| 🐦
 [Thread@X(Twitter)](https://x.com/tongyx361/status/1811413243350454455)
-\| 🐶 [中文博客@知乎](https://zhuanlan.zhihu.com/p/708371895)
+\| 🐶 [中文博客@知乎](https://zhuanlan.zhihu.com/p/708371895) \| 📑
+[BibTeX](https://github.com/hkust-nlp/dart-math?tab=readme-ov-file#citation)
 
 <div align="center">
 
