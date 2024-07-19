@@ -5,8 +5,7 @@
 
 > Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving
 
-📝
-[Paper@GitHub](https://tongyx361.github.io/assets/dart-math/paper-dart-math.pdf) \| 🤗
+📝 [Paper@arXiv](https://arxiv.org/abs/2407.13690) \| 🤗
 [Datasets&Models@HF](https://huggingface.co/collections/hkust-nlp/dart-math-665704599b35de59f8fdf6c1)
 \| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math) \| 🐦
 [Thread@X(Twitter)](https://x.com/tongyx361/status/1811413243350454455)
@@ -454,16 +453,16 @@ Thanks to:
 ## Citation
 
 If you find our data, model or code useful for your work, please kindly
-cite [our
-paper](https://tongyx361.github.io/assets/dart-math/paper-dart-math.pdf):
+cite [our paper](https://arxiv.org/abs/2407.13690):
 
 ``` latex
 @article{tong2024dartmath,
-  author = {Yuxuan Tong, Xiwen Zhang, Rui Wang, Ruidong Wu, Junxian He},
-  title = {DART-Math: Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving},
-  year = {2024},
-  publisher = {GitHub},
-  journal = {preprint},
-  howpublished = {\url{https://tongyx361.github.io/assets/dart-math/paper-dart-math.pdf}},
+  title={DART-Math: Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving},
+  author={Yuxuan Tong and Xiwen Zhang and Rui Wang and Ruidong Wu and Junxian He},
+  year={2024},
+  eprint={2407.13690},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2407.13690},
 }
 ```
