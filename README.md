@@ -16,6 +16,26 @@
 \| 📑
 [BibTeX](https://github.com/hkust-nlp/dart-math?tab=readme-ov-file#citation)
 
+> \[!IMPORTANT\]
+>
+> 🔥 **News!!!**
+>
+> - \[2024/07/21\] Excited to find **our [`DART-Math-DSMath-7B`
+>   (Prop2Diff)](https://huggingface.co/hkust-nlp/dart-math-dsmath-7b-prop2diff)
+>   [comparable](https://github.com/project-numina/aimo-progress-prize/blob/main/report/numina_dataset.pdf)
+>   to the AIMO winner
+>   [NuminaMath-7B](https://huggingface.co/AI-MO/NuminaMath-7B-CoT)** on
+>   CoT, but based solely on
+>   [MATH](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-math-query-info)
+>   &
+>   [GSM8K](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-gsm8k-query-info)
+>   prompt set, leaving much room to improve! Besides, our [`DART`
+>   method](https://github.com/hkust-nlp/dart-math?tab=readme-ov-file#dars--difficulty-aware-rejection-sampling)
+>   is also fully [compatible with tool-integrated
+>   reasoning](https://github.com/hkust-nlp/dart-math?tab=readme-ov-file#tool-integrated-reasoning-reasoning-in-natural-language-interleaved-with-python-code).
+>   Join the discussion under this [X
+>   thread](https://x.com/tongyx361/status/1815112376649134172)!
+
 <div align="center">
 
 <img src="https://tongyx361.github.io/assets/dart-math/main-results.png" alt="Main results averaged on 2 in-domain and 4 challenging out-of-domain mathematical reasoning benchmarks." height=300px>
