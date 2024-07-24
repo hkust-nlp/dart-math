@@ -579,8 +579,8 @@ def load_query_dps(
         else:
             query_dps = []
             # Preset datasets
-            if dataset in ["math-test", "math-train"]:
-                split = dataset.split("-")[-1]
+            if dataset.startswith("math/"):
+                split = dataset.split("/")[-1]
                 dps = datasets.load_dataset(
                     "hendrycks/competition_math", split=split, trust_remote_code=True
                 )
@@ -594,8 +594,8 @@ def load_query_dps(
                             domain=dp["type"].replace(" ", ""),
                         )
                     )
-            elif dataset in ["gsm8k-test", "gsm8k-train"]:
-                split = dataset.split("-")[-1]
+            elif dataset.startswith("gsm8k/"):
+                split = dataset.split("/")[-1]
                 dps = datasets.load_dataset(
                     "gsm8k", "main", split=split, trust_remote_code=True
                 )
@@ -607,9 +607,23 @@ def load_query_dps(
                             ref_ans=dp["answer"].split("\n#### ")[-1],
                         )
                     )
+            elif dataset.startswith("gsm8k-fix/"):
+                split = dataset.split("/")[-1]
+                dps = datasets.load_dataset(
+                    "gsm8k", "main", split=split, trust_remote_code=True
+                )
+                for dp in dps:
+                    query_dps.append(
+                        QueryDataPoint(
+                            dataset=dataset,
+                            query=dp["query"],
+                            ref_ans=dp["gt_ans"],
+                            n_step=dp["query_metadata"]["n_step"],
+                        )
+                    )
             elif dataset in [
-                "mwpbench/college-math-test",
-                "mwpbench/college-math-train",
+                "mwpbench/college-math/test",
+                "mwpbench/college-math/train",
                 "mwpbench/fresh-gaokao-math-2023",
                 "mwpbench/gaokaobench",
             ]:

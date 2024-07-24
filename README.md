@@ -313,7 +313,7 @@ For example, to reproduce one pass of greedy decoding with
 CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --gen_save_path "data/res/dart-math-mistral-7b-prop2diff.jsonl" \
     --model_name_or_path "hkust-nlp/dart-math-mistral-7b-prop2diff" \
-    --datasets "math-test" "gsm8k-test" "mwpbench/college-math-test" "deepmind-mathematics" \
+    --datasets "math/test" "gsm8k/test" "mwpbench/college-math/test" "deepmind-mathematics" \
         "olympiadbench/OE_TO_maths_en_COMP" "theoremqa" \
     --max_new_toks 2048 --temperature 0 \
     --prompt_template "alpaca" --n_shots -1 \
@@ -356,7 +356,7 @@ for gpu_ids in "${gpu_ids_list[@]}"; do
     CUDA_VISIBLE_DEVICES="${gpu_ids}" python pipeline/gen.py \
         --gen_save_path "data/res/${exp_name}.jsonl" \
         --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
-        --datasets "math-train" "gsm8k-train" \
+        --datasets "math/train" "gsm8k-fix/train" \
         --max_new_toks 2048 --temperature 1.6 --top_p 0.95 \
         --prompt_template "deepseekmath" --n_shots 0 \
         --inf_seed -1 \
@@ -365,6 +365,11 @@ for gpu_ids in "${gpu_ids_list[@]}"; do
     # NOTE: `--max_n_trials 0` means possible infinite trials, kill the job manually when needed
 done
 ```
+
+<sup>NOTE: Some **erroneous labels** exist in the GSM8K dataset, so we
+tried to fix them and produced
+[`gsm8k-fix`](https://huggingface.co/datasets/hkust-nlp/gsm8k-fix).
+</sup>
 
 To reproduce the data synthesis of the **Vanilla Rejection Tuning (VRT)
 baseline** in the paper, just set
@@ -380,7 +385,7 @@ Rejection Tuning (VRT) baseline in the paper
 CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --gen_save_path "data/res/dart-math-uniform.jsonl" \
     --model_name_or_path "deepseek-ai/deepseek-math-7b-rl" \
-    --datasets "math-train" "gsm8k-train" \
+    --datasets "math/train" "gsm8k-fix/train" \
     --max_new_tokens 2048 --temperature 1.6 --top_p 0.95 \
     --prompt_template "cot" --n_shots 0 \
     --inf_seed -1 \
