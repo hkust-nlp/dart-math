@@ -11,6 +11,7 @@ import logging
 import os
 import time
 
+import torch
 from vllm import LLM, SamplingParams
 
 from dart_math.data import RespSampleVLLM, load_query_dps
@@ -236,7 +237,7 @@ if __name__ == "__main__":
     llm = LLM(
         model=args.model_name_or_path,
         tokenizer=args.model_name_or_path,
-        tensor_parallel_size=len(os.environ["CUDA_VISIBLE_DEVICES"].split(",")),
+        tensor_parallel_size=torch.cuda.device_count(),
         dtype=args.dtype,
         seed=args.inf_seed,
         gpu_memory_utilization=args.gpu_mem_util,
