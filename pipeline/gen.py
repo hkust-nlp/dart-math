@@ -145,6 +145,11 @@ if __name__ == "__main__":
         default=0,
         help="(List of) minimum number of correct completions per query needed to stop generation. Non-positive means no goal.",
     )
+    parser.add_argument(
+        "--strict_extract",
+        action="store_true",
+        help="Whether to extract answers strictly. If `False`, speculate the answer from the last number if needed.",
+    )
 
     # Code execution
     parser.add_argument(
@@ -259,7 +264,11 @@ if __name__ == "__main__":
         llm,
         sampling_params,
         resp_sample_cls=RespSampleVLLM,
-        batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None),
+        batch_evaluator=(
+            EvaluatorMathBatch(strict_extract=args.strict_extract)
+            if not args.gen_only
+            else None
+        ),
         code_exec_cfg=code_exec_cfg,
     )
     generator.gen(

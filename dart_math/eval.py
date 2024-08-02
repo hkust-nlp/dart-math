@@ -8,21 +8,9 @@ from math import isclose
 from typing import Any, Callable
 
 from pebble import ProcessPool
-
 # Useful for `eval` despite not appearing in the code
-from sympy import (
-    E,
-    FiniteSet,
-    I,
-    Intersection,
-    Interval,
-    Matrix,
-    N,
-    Union,
-    pi,
-    simplify,
-    sqrt,
-)
+from sympy import (E, FiniteSet, I, Intersection, Interval, Matrix, N, Union,
+                   pi, simplify, sqrt)
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.latex.errors import LaTeXParsingError
 from sympy.parsing.sympy_parser import parse_expr
@@ -83,12 +71,19 @@ def norm_str2bool(s: str) -> bool | None:
 
 
 class EvaluatorBase:
-    """Base class for evaluators."""
+    """Base class for evaluators.
+
+    Parameters
+    ----------
+    strict_extract: bool, default: False
+        Whether to extract answers strictly. If `False`, speculate the answer from the last number if needed.
+    """
 
     def __init__(
         self,
+        strict_extract: bool = False,
     ):
-        pass
+        self.strict_extract = strict_extract
 
     def eval(self, sample: RespSampleBase) -> bool:
         """Evaluate a sample based on comprehensive information."""
@@ -104,7 +99,7 @@ class EvaluatorBase:
         """Extract answer segment from complete `resp`."""
 
         resp = self.extract_explicit_ans(resp_str)
-        if resp is None:  # use the last number
+        if self.strict_extract and resp is None:  # use the last number
             pattern = r"-?\d*\.?\d+"
             resp = re.findall(pattern, resp_str.replace(",", ""))
             if len(resp) >= 1:
@@ -195,12 +190,15 @@ class EvaluatorBatchBase(EvaluatorBase):
 
     Parameters
     ----------
+    strict_extract: bool, default: False
+        Whether to extract answers strictly. If `False`, speculate the answer from the last number if needed.
     timeout : int, default: DEF_TIMEOUT:=5
         The timeout for each evaluation in seconds.
     """
 
-    def __init__(self, timeout: int = DEF_TIMEOUT):
+    def __init__(self, strict_extract: bool = False, timeout: int = DEF_TIMEOUT):
         EvaluatorBase.__init__(self)
+        self.strict_extract = strict_extract
         self.timeout = timeout
 
     def batch_eval(
@@ -704,6 +702,8 @@ class EvaluatorMath(EvaluatorBase):
 
     Parameters
     ----------
+    strict_extract: bool, default: False
+        Whether to extract answers strictly. If `False`, speculate the answer from the last number if needed.
     use_orig_eq_for_olympiadbench : bool, default: True
         Whether to use the original implementation of `eq` for OlympiadBench.
         For OlympiadBench, by default, we use the official implementation of `eq` by He et al. (2024),
@@ -726,6 +726,7 @@ class EvaluatorMath(EvaluatorBase):
 
     def __init__(
         self,
+        strict_extract: bool = False,
         use_orig_eq_for_olympiadbench: bool = True,
         include_percentage: bool = True,
         rel_tol: float = DEF_REL_TOL,
@@ -734,6 +735,7 @@ class EvaluatorMath(EvaluatorBase):
         ascii_only: bool = True,
     ):
         EvaluatorBase.__init__(self)
+        self.strict_extract = strict_extract
 
         if use_orig_eq_for_olympiadbench:
             self.olympiad_math_judger = OlympiadMathJudger()
@@ -1370,6 +1372,8 @@ class EvaluatorMathBatch(EvaluatorMath, EvaluatorBatchBase):
 
     Parameters
     ----------
+    strict_extract: bool, default: False
+        Whether to extract answers strictly. If `False`, speculate the answer from the last number if needed.
     timeout : int, default: DEF_TIMEOUT:=5
     use_orig_eq_for_olympiadbench : bool, default: True
         Whether to use the original implementation of `eq` for OlympiadBench.
@@ -1393,6 +1397,7 @@ class EvaluatorMathBatch(EvaluatorMath, EvaluatorBatchBase):
 
     def __init__(
         self,
+        strict_extract: bool = False,
         use_orig_eq_for_olympiadbench: bool = True,
         include_percentage: bool = True,
         rel_tol: float = DEF_REL_TOL,
@@ -1412,3 +1417,4 @@ class EvaluatorMathBatch(EvaluatorMath, EvaluatorBatchBase):
             ascii_only=ascii_only,
         )
         EvaluatorBatchBase.__init__(self, timeout=timeout)
+        self.strict_extract = strict_extract
