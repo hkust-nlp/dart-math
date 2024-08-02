@@ -44,8 +44,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--gpu_mem_util",
         type=float,
-        default=0.85,
-        help="GPU memory utilization for vLLM. Default: 0.85 in case of OOM.",
+        default=0.9,
+        help="GPU memory utilization for vLLM.",
     )
 
     parser.add_argument(
