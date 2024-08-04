@@ -1,6 +1,8 @@
 #! /bin/bash
 # Default arguments
 data_path="hkust-nlp/dart-math-hard"
+query_field="query"
+resp_field="response"
 model_path="meta-llama/Meta-Llama-3-8B"
 lr="5e-5"
 bs=64
@@ -14,6 +16,14 @@ while [[ $# -gt 0 ]]; do
     case $1 in
     --data_path)
         data_path="$2"
+        shift 2
+        ;;
+    --query_field)
+        query_field="$2"
+        shift 2
+        ;;
+    --resp_field)
+        resp_field="$2"
         shift 2
         ;;
     --model_path)
@@ -90,8 +100,8 @@ accelerate launch \
     --dynamo_backend "${torch_compile_backend}" \
     pipeline/train.py \
     --data_path ${data_path} \
-    --query_field "query" \
-    --resp_field "response" \
+    --query_field "${query_field}" \
+    --resp_field "${resp_field}" \
     --prompt_template "alpaca" \
     --tokenized_cache_home "$(realpath data/cache-tokenized)" \
     --model_name_or_path "${model_path}" \
