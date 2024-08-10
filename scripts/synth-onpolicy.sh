@@ -13,7 +13,7 @@
 #SBATCH --output=logs/slurm/%x_%A_%a.log
 #SBATCH --error=logs/slurm/%x_%A_%a.err
 set -eo pipefail
-set -x
+# set -x
 
 source utils/init.sh
 conda_act dart-math

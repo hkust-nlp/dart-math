@@ -8,9 +8,21 @@ from math import isclose
 from typing import Any, Callable
 
 from pebble import ProcessPool
+
 # Useful for `eval` despite not appearing in the code
-from sympy import (E, FiniteSet, I, Intersection, Interval, Matrix, N, Union,
-                   pi, simplify, sqrt)
+from sympy import (
+    E,
+    FiniteSet,
+    I,
+    Intersection,
+    Interval,
+    Matrix,
+    N,
+    Union,
+    pi,
+    simplify,
+    sqrt,
+)
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.latex.errors import LaTeXParsingError
 from sympy.parsing.sympy_parser import parse_expr
@@ -23,8 +35,25 @@ from .data import RespSampleBase
 from .olympiadbench import OlympiadMathJudger
 from .parallel import seq_consume_preset_queue_w_each_timeout
 
-# "ки" is the delimeter for Math-Shepherd
-STRIP_STRS = [":", ".", "/", ",", "#", "?", "$", '"', "'", "к", "и"]
+STRIP_STRS = [
+    ":",
+    ".",
+    "/",
+    ",",
+    "#",
+    "?",
+    "$",
+    '"',
+    "'",
+    # "ки" is the delimeter for Math-Shepherd
+    "к",
+    "и",
+    # LaTeX
+    "\\(",
+    "\\)",
+    "\\[",
+    "\\]",
+]
 NO_TRAILING_STRS = ["(", "[", "{", "\\"] + STRIP_STRS
 NO_PRECEDING_PUNCS = ["!", ")", "]", "}", "\\\\"] + STRIP_STRS
 # Answer prefixes
@@ -754,7 +783,7 @@ class EvaluatorMath(EvaluatorBase):
         else:
             ans = sample.ans
 
-        if sample.finish_reason in [
+        if getattr(sample, "finish_reason", None) in [
             "length",
             "abort",
         ]:
