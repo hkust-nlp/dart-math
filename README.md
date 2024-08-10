@@ -436,7 +436,7 @@ attribute](https://hkust-nlp.github.io/dart-math/gen.html#:~:text=means%20no%20e
 in the command or the
 [script](https://github.com/hkust-nlp/dart-math/blob/main/pipeline/gen.py).
 
-## Contribution Guidelines
+## 🍀 Contribution
 
 ### File Structure
 
@@ -471,7 +471,15 @@ Please refer to the comments in the script for how it works.
   parallelism
   - [`gen.py`](pipeline/gen.py)
 
-## Acknowledgements
+## 🌟 Star History
+
+<a href="https://star-history.com/#hkust-nlp/dart-math&Date"> <picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=hkust-nlp/dart-math&type=Date&theme=dark" />
+<source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=hkust-nlp/dart-math&type=Date" />
+<img alt="Star History Chart" src="https://api.star-history.com/svg?repos=hkust-nlp/dart-math&type=Date" />
+</picture> </a>
+
+## 🙏 Acknowledgements
 
 Thanks to:
 
@@ -484,7 +492,7 @@ Thanks to:
   packing](https://hkust-nlp.github.io/dart-math/train.html#sequence-packing).
 - @HYZ17 for extensive tests and helpful suggestions.
 
-## Citation
+## ☕️ Citation
 
 If you find our data, model or code useful for your work, please kindly
 cite [our paper](https://arxiv.org/abs/2407.13690):
