@@ -248,7 +248,7 @@ class RespSampleVLLM(RespSampleBase):
 
 ICL_EGS = {}
 
-ICL_EGS["math-test"] = [
+ICL_EGS["math/test"] = [
     (
         "The sum of two numbers is 6. The difference of their squares is 12. What is the positive difference of the two numbers?",
         """Call the two numbers $x$ and $y$.\nWe are given that $x+y = 6$ and $x^2 - y^2 = 12$.\nBecause $x^2 - y^2$ factors into $(x+y)(x-y)$, we can substitute in for $x+y$, giving $6(x-y) = 12$, or $x-y = 2$.\nThe answer is 2""",
@@ -283,7 +283,7 @@ ICL_EGS["math-test"] = [
     ),
 ]
 
-ICL_EGS["gsm8k-test"] = [
+ICL_EGS["gsm8k/test"] = [
     (
         "Angelo and Melanie want to plan how many hours over the next week they should study together for their test next week. They have 2 chapters of their textbook to study and 4 worksheets to memorize. They figure out that they should dedicate 3 hours to each chapter of their textbook and 1.5 hours for each worksheet. If they plan to study no more than 4 hours each day, how many days should they plan to study total over the next week if they take a 10-minute break every hour, include 3 10-minute snack breaks each day, and 30 minutes for lunch each day?",
         "Angelo and Melanie think they should dedicate 3 hours to each of the 2 chapters, 3 hours x 2 chapters = 6 hours total.\nFor the worksheets they plan to dedicate 1.5 hours for each worksheet, 1.5 hours x 4 worksheets = 6 hours total.\nAngelo and Melanie need to start with planning 12 hours to study, at 4 hours a day, 12 / 4 = 3 days.\nHowever, they need to include time for breaks and lunch. Every hour they want to include a 10-minute break, so 12 total hours x 10 minutes = 120 extra minutes for breaks.\nThey also want to include 3 10-minute snack breaks, 3 x 10 minutes = 30 minutes.\nAnd they want to include 30 minutes for lunch each day, so 120 minutes for breaks + 30 minutes for snack breaks + 30 minutes for lunch = 180 minutes, or 180 / 60 minutes per hour = 3 extra hours.\nSo Angelo and Melanie want to plan 12 hours to study + 3 hours of breaks = 15 hours total.\nThey want to study no more than 4 hours each day, 15 hours / 4 hours each day = 3.75\nThey will need to plan to study 4 days to allow for all the time they need.\nThe answer is 4",
@@ -325,7 +325,7 @@ ICL_EGS["theoremqa"] = [
     ),
 ]
 
-ICL_EGS["mwpbench/college-math-test"] = [
+ICL_EGS["mwpbench/college-math/test"] = [
     # {"data_source": "college_math.Beginning_and_Intermediate_Algebra", "question_number": "exercise.8.3.20", "question": "Simplify: $-3 \\sqrt{18}-\\sqrt{8}+2 \\sqrt{8}+2 \\sqrt{8}$", "answer": "$-3 \\sqrt{2}$", "license": "Creative Commons Attribution 3.0 Unported License (CC BY 3.0)", "data_topic": "college_math.algebra"}
     (
         "Simplify: $-3 \\sqrt{18}-\\sqrt{8}+2 \\sqrt{8}+2 \\sqrt{8}$",
@@ -446,10 +446,10 @@ ICL_EGS["olympiadbench/OE_TO_maths_en_COMP"] = [
             r"The answer is: \$(.+)\$", r"So the final answer is \boxed{\1}", response
         ),
     )
-    for query, response in ICL_EGS["mwpbench/college-math-test"]
+    for query, response in ICL_EGS["mwpbench/college-math/test"]
 ]
 
-ICL_EGS["deepmind-mathematics"] = ICL_EGS["math-test"]
+ICL_EGS["deepmind-mathematics"] = ICL_EGS["math/test"]
 
 DS_ID2N_SHOTS = {ds: len(egs) for ds, egs in ICL_EGS.items()}
 

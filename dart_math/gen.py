@@ -7,7 +7,8 @@ from pebble import ProcessPool
 from tqdm import tqdm
 from vllm import LLM, RequestOutput, SamplingParams
 
-from .data import DS_ID2N_SHOTS, ICL_EGS, QueryDataPoint, RespSampleBase, RespSampleVLLM
+from .data import (DS_ID2N_SHOTS, ICL_EGS, QueryDataPoint, RespSampleBase,
+                   RespSampleVLLM)
 from .eval import EvaluatorBatchBase
 from .exec import CodeExecCfg, exec_cells
 from .utils import BASE_MODEL_IDS, get_pathname_from_name_or_path
@@ -19,10 +20,10 @@ from .utils import BASE_MODEL_IDS, get_pathname_from_name_or_path
 
 def get_n_shots(
     dataset: str,
-    model: str,
+    model_dirname: str,
 ) -> int:
     """Get the number of ICL examples adaptive to the dataset and model."""
-    if model in BASE_MODEL_IDS or "mammoth2" in model.lower():
+    if model_dirname in BASE_MODEL_IDS or "mammoth2" in model_dirname.lower():
         n_shots = DS_ID2N_SHOTS.get(dataset)
     else:
         n_shots = 0
@@ -31,7 +32,7 @@ def get_n_shots(
 
 
 def get_icl_egs(
-    dataset: str, n_shots: int = None, model: str | None = None
+    dataset: str, n_shots: int = None, model_dirname: str | None = None
 ) -> list[tuple[str, str]]:
     """Get the ICL examples for the dataset.
 
@@ -41,7 +42,7 @@ def get_icl_egs(
         Preset dataset ID.
     n_shots : int, default: None
         Number of examples in the few-shot prompt. `None` / Negative means adaptive to the datasets.
-    model : str | None, default: None
+    model_dirname : str | None, default: None
         HF ID or path to the model.
 
     Returns
@@ -49,7 +50,11 @@ def get_icl_egs(
     list[tuple[str, str]]
         ICL examples adaptive to the dataset (and model).
     """
-    n_shots = get_n_shots(dataset, model) if n_shots is None or n_shots < 0 else n_shots
+    n_shots = (
+        get_n_shots(dataset, model_dirname)
+        if n_shots is None or n_shots < 0
+        else n_shots
+    )
     return [] if n_shots == 0 else ICL_EGS[dataset][:n_shots]
 
 
@@ -182,8 +187,8 @@ class Generator:
             The generated responses grouped by input strings.
         """
         # rand_idx = random.choice(range(len(batch_input_strs)))
-        logging.info(f"sampling_params: {self.sampling_params}")
-        logging.info(f"input_strs[0]: {input_strs[0]}")
+        logging.info(f"{self.sampling_params=}")
+        logging.info(f"{input_strs[0]=}")
         if self.code_exec_cfg is None:
             req_outputs = self.llm.generate(input_strs, self.sampling_params)
         else:
@@ -368,6 +373,7 @@ class Generator:
             save_path = f"{prefix}-seed{seed}{ext}"  # Add seed to the file name
 
         model_name_or_path = self.llm.llm_engine.model_config.model
+        model_dirname = get_pathname_from_name_or_path(model_name_or_path)
 
         all_new_samples = []
         sched_finished = False
@@ -394,7 +400,7 @@ class Generator:
                     batch_dps.append(dp)
 
                     # Make the input string
-                    icl_egs = get_icl_egs(dp.dataset, dp.n_shots, model_name_or_path)
+                    icl_egs = get_icl_egs(dp.dataset, dp.n_shots, model_dirname)
 
                     input_str = dp.prompt_template.make_full_prompt(dp.query, icl_egs)
                     batch_input_strs.append(input_str.strip())
@@ -454,8 +460,8 @@ class Generator:
 
             logging.info(
                 f"""# of new samples: {sample_cnt}
-                Rate achieving `max_n_corrects` : {achieve_cnt / n_all_dps:.2%} (= {achieve_cnt}/{n_all_dps})
-                Rate running out `max_n_trials` : {quit_cnt / n_all_dps:.2%} (= {quit_cnt}/{n_all_dps})"""
+                Rate achieving `max_n_corrects` : {achieve_cnt / n_all_dps:.1%} (= {achieve_cnt}/{n_all_dps}) (not Acc. here)
+                Rate running out `max_n_trials` : {quit_cnt / n_all_dps:.1%} (= {quit_cnt}/{n_all_dps})"""
             )
 
         if save_path is None:

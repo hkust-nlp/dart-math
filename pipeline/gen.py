@@ -195,6 +195,14 @@ if __name__ == "__main__":
         args.code_exec_cfg = "python"
         logging.warning(f"{args.prompt_template=} -> Setting {args.code_exec_cfg=}")
 
+    query_dps = load_query_dps(
+        args.datasets,
+        args.max_n_trials,
+        args.min_n_corrects,
+        n_shots=args.n_shots,
+    )
+    logging.info(f"Loaded {len(query_dps)} query data points.")
+
     model_dirname = get_pathname_from_name_or_path(args.model_name_or_path)
     logging.info(f"{model_dirname=}")
 
@@ -206,9 +214,6 @@ if __name__ == "__main__":
         else PromptTemplate.load_from_id_or_path(args.prompt_template)
     )
     logging.info(f"{prompt_template.id=}")
-
-    query_dps = load_query_dps(args.datasets, args.max_n_trials, args.min_n_corrects)
-    logging.info(f"Loaded {len(query_dps)} query data points.")
     # TODO: response-wise prompt template
     for query_dp in query_dps:
         query_dp.prompt_template = prompt_template
@@ -226,6 +231,7 @@ if __name__ == "__main__":
         temperature=args.temperature,
         top_p=args.top_p,
         max_tokens=args.max_new_toks,
+        ignore_eos=True,  # Llama-3-8B(-Base) tends to decode EoS immediately
         skip_special_tokens=True,
         seed=args.inf_seed,
     )
