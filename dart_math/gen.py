@@ -417,7 +417,11 @@ class Generator:
             batch_new_samples = []
             for dp, req_output in zip(batch_dps, batch_req_outputs):
                 for gen_path in req_output.outputs:
-                    batch_new_samples.append(self.resp_sample_cls.collect(dp, gen_path))
+                    batch_new_samples.append(
+                        self.resp_sample_cls.collect(
+                            dp, gen_path, agent=model_name_or_path
+                        )
+                    )
 
             if self.batch_evaluator is not None:
                 self.batch_evaluator.batch_eval(batch_new_samples)

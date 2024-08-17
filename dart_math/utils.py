@@ -3,6 +3,7 @@ import logging
 import os
 
 import orjson
+from tqdm import tqdm
 
 try:
     REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -332,10 +333,16 @@ def get_pathname_from_name_or_path(name_or_path: str) -> str:
 # IO
 
 
-def load_jsonl(fpath: str) -> list:
+def load_jsonl(fpath: str, use_tqdm: bool = False) -> list:
     """Load JSONL file."""
     with open(fpath, "r") as f:
-        return [orjson.loads(line) for line in f]
+        lines: list[str] = f.readlines()
+        return [
+            orjson.loads(line)
+            for line in (
+                lines if not use_tqdm else tqdm(lines, desc=f"Loading {fpath}")
+            )
+        ]
 
 
 def save_jsonl(data: list, fpath: str) -> None:

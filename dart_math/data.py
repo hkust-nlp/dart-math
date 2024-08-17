@@ -88,6 +88,10 @@ class RespSampleBase:
         The reference answer to the query.
     resp : str
         The generated response.
+    agent: str
+        The agent used to generate the response.
+    prompt_template: str, optional
+        ID of the prompt template used.
     ans : str, optional
         The answer in the generated response, by default None
     correct : bool, optional
@@ -100,6 +104,8 @@ class RespSampleBase:
         query: str,
         ref_ans: str,
         resp: str,
+        agent: str,
+        prompt_template: str = None,
         ans: str = None,
         correct: bool = None,
     ):
@@ -107,11 +113,15 @@ class RespSampleBase:
         self.query = query
         self.ref_ans = ref_ans
         self.resp = resp
+        self.agent = agent
+        self.prompt_template = prompt_template
         self.ans = ans
         self.correct = correct
 
     @classmethod
-    def collect(cls, query_dp: QueryDataPoint, resp: str) -> "RespSampleBase":
+    def collect(
+        cls, query_dp: QueryDataPoint, resp: str, agent: str
+    ) -> "RespSampleBase":
         """Collect the response-level data point without extracted answer yet.
 
         Parameters
@@ -120,6 +130,8 @@ class RespSampleBase:
             The query-level data point.
         resp: str
             The generated response.
+        agent: str
+            The agent used to generate the response.
 
         Returns
         -------
@@ -129,6 +141,7 @@ class RespSampleBase:
         return cls(
             **query_dp.__dict__,
             resp=resp,
+            agent=agent,
         )
 
     def to_dict(self) -> dict[str, str | list[str | bool]]:
@@ -136,8 +149,9 @@ class RespSampleBase:
         d = {
             k: v
             for k, v in self.__dict__.items()
-            if k not in ["query", "resp", "prompt_template"]
+            if k not in ["query", "resp", "agent", "prompt_template"]
         }
+        d["agent"] = self.agent
         d["prompt_template"] = getattr(self.prompt_template, "id", self.prompt_template)
         d["query"] = self.query
         d["resp"] = self.resp
@@ -200,16 +214,18 @@ class RespSampleVLLM(RespSampleBase):
 
     @classmethod
     def collect(
-        cls, query_dp: QueryDataPoint, resp: CompletionOutput
+        cls, query_dp: QueryDataPoint, resp: CompletionOutput, agent: str
     ) -> "RespSampleVLLM":
         """Collect the response-level data point.
 
         Parameters
         ----------
-        cls : RespSampleVLLM
-            The query-level data point to collect the generated response for.
         query_dp : QueryDataPoint
+            The query-level data point to collect the generated response for.
+        resp : CompletionOutput
             One resp path of the LLM model. Refer to https://github.com/vllm-project/vllm/blob/f081c3ce4b020fb094e33575d178345c477ab0c6/vllm/resps.py#L11-L48 for the attributes.
+        agent : str
+            The agent used to generate the response.
 
         Returns
         -------
@@ -218,6 +234,7 @@ class RespSampleVLLM(RespSampleBase):
         """
         resp_sample_vllm = cls(
             **query_dp.__dict__,
+            agent=agent,
             resp=resp.text,
             finish_reason=resp.finish_reason,
             stop_reason=getattr(resp, "stop_reason", None),
