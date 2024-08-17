@@ -7,8 +7,7 @@ from pebble import ProcessPool
 from tqdm import tqdm
 from vllm import LLM, RequestOutput, SamplingParams
 
-from .data import (DS_ID2N_SHOTS, ICL_EGS, QueryDataPoint, RespSampleBase,
-                   RespSampleVLLM)
+from .data import DS_ID2N_SHOTS, ICL_EGS, QueryDataPoint, RespSampleBase, RespSampleVLLM
 from .eval import EvaluatorBatchBase
 from .exec import CodeExecCfg, exec_cells
 from .utils import BASE_MODEL_IDS, get_pathname_from_name_or_path
@@ -403,8 +402,7 @@ class Generator:
                     icl_egs = get_icl_egs(dp.dataset, dp.n_shots, model_dirname)
 
                     input_str = dp.prompt_template.make_full_prompt(dp.query, icl_egs)
-                    batch_input_strs.append(input_str.strip())
-                    # NOTE: `.strip()` is important for SFT/RL models and also acceptable for both 0-shot on SFT/RL models and few-shot on base models
+                    batch_input_strs.append(input_str)
 
                     # Check if batch is full
                     batch_collected = (

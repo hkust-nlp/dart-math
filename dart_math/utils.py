@@ -194,9 +194,12 @@ class PromptTemplate:
             return PromptTemplate(**PROMPT_TEMPLATE_ID2DICT["alpaca"])
 
     def make_prefix_prompt(self, query: str) -> str:
-        """Make a prefix prompt of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}.rstrip()`.
-        NOTE: `.rstrip()` is important for correct tokenization."""
-        return f"{self.query_prompt}{query}{self.prompt_after_query}{self.resp_prompt}{self.prompt_before_resp}".rstrip()
+        """Make a prefix prompt of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}.rstrip(" ")`.
+        NOTE: `.rstrip(" ")` is important for correct tokenization, while some cases need "\\n" at the end.
+        """
+        return f"{self.query_prompt}{query}{self.prompt_after_query}{self.resp_prompt}{self.prompt_before_resp}".rstrip(
+            " "
+        )
 
     def make_qa_pair(self, query: str, response: str) -> str:
         """Make a QA pair of `{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}{response}`."""
