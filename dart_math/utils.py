@@ -136,9 +136,9 @@ PROMPT_TEMPLATE_ID2DICT = {
         id="llama3-math",
         sys_prompt=(
             "<|begin_of_text|>"
-            # + "<|start_header_id|>system<|end_header_id|>\n\n"
-            # + "You are a helpful assistant."
-            # + "<|eot_id|>"
+            + "<|start_header_id|>system<|end_header_id|>\n\n"
+            + "You are a helpful agent on solving math problems."
+            + "<|eot_id|>"
         ),
         query_prompt="<|start_header_id|>" + "user" + "<|end_header_id|>" + "\n\n",
         # {query}
