@@ -332,6 +332,14 @@ For other general inference settings, please modify the command or
 directly modify the
 [script](https://github.com/hkust-nlp/dart-math/blob/main/pipeline/gen.py).
 
+- To test **base** models, please add the corresponding **ID** to
+  `BASE_MODEL_IDS` from
+  [dart_math.utils](https://github.com/hkust-nlp/dart-math/blob/main/dart_math/utils.py).
+- To test **instruct** models, please add the corresponding **prompt
+  template** to `PROMPT_TEMPLATE_ID2DICT` from
+  [dart_math.utils](https://github.com/hkust-nlp/dart-math/blob/main/dart_math/utils.py)
+  and specify with `--prompt_template`.
+
 You can also add the `--gen_only` option to only generate responses
 without evaluation and use the
 [`EvaluatorMathBatch`](https://hkust-nlp.github.io/dart-math/eval.html#evaluatormathbatch)
