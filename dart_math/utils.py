@@ -324,7 +324,7 @@ def get_pathname_from_name_or_path(name_or_path: str) -> str:
             pathname = os.path.basename(name_or_path)
         else:
             pathname = "/".join(name_or_path.split("/")[-2:])
-    pathname = pathname.replace("/", "-")
+    pathname = pathname.replace("/", "--")
 
     return pathname
 

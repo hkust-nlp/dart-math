@@ -196,14 +196,16 @@ if __name__ == "__main__":
         logging.warning(f"{args.prompt_template=} -> Setting {args.code_exec_cfg=}")
 
     model_dirname = get_pathname_from_name_or_path(args.model_name_or_path)
+    logging.info(f"{model_dirname=}")
 
     prompt_template = (
         PromptTemplate.get_prompt_template_from_prompt_type_and_model(
-            prompt_type=args.prompt_template, model_name_or_path=args.model_name_or_path
+            prompt_type=args.prompt_template, model_name_or_path=model_dirname
         )
         if args.prompt_template in ["cot", "tool"]
         else PromptTemplate.load_from_id_or_path(args.prompt_template)
     )
+    logging.info(f"{prompt_template.id=}")
 
     query_dps = load_query_dps(args.datasets, args.max_n_trials, args.min_n_corrects)
     logging.info(f"Loaded {len(query_dps)} query data points.")

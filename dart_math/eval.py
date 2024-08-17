@@ -8,9 +8,21 @@ from math import isclose
 from typing import Any, Callable
 
 from pebble import ProcessPool
+
 # Useful for `eval` despite not appearing in the code
-from sympy import (E, FiniteSet, I, Intersection, Interval, Matrix, N, Union,
-                   pi, simplify, sqrt)
+from sympy import (
+    E,
+    FiniteSet,
+    I,
+    Intersection,
+    Interval,
+    Matrix,
+    N,
+    Union,
+    pi,
+    simplify,
+    sqrt,
+)
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.latex.errors import LaTeXParsingError
 from sympy.parsing.sympy_parser import parse_expr
@@ -99,7 +111,7 @@ class EvaluatorBase:
         """Extract answer segment from complete `resp`."""
 
         resp = self.extract_explicit_ans(resp_str)
-        if self.strict_extract and resp is None:  # use the last number
+        if not self.strict_extract and resp is None:  # use the last number
             pattern = r"-?\d*\.?\d+"
             resp = re.findall(pattern, resp_str.replace(",", ""))
             if len(resp) >= 1:

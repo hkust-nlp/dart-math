@@ -319,7 +319,7 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --datasets "math/test" "gsm8k/test" "mwpbench/college-math/test" "deepmind-mathematics" \
         "olympiadbench/OE_TO_maths_en_COMP" "theoremqa" \
     --max_new_toks 2048 --temperature 0 \
-    --prompt_template "alpaca" --n_shots -1 \
+    --prompt_template "cot" --n_shots -1 \
     --inf_seed -1 \
     --max_n_trials 1
 ```
