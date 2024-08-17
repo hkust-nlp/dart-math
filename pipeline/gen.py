@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
     prompt_template = (
         PromptTemplate.get_prompt_template_from_prompt_type_and_model(
-            prompt_type=args.prompt_template, model_name_or_path=model_dirname
+            prompt_type=args.prompt_template, model_dirname=model_dirname
         )
         if args.prompt_template in ["cot", "tool"]
         else PromptTemplate.load_from_id_or_path(args.prompt_template)

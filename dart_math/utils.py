@@ -132,6 +132,28 @@ PROMPT_TEMPLATE_ID2DICT = {
         # {resp}
         delim="\n\n",
     ),
+    "llama3-math": dict(  # https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3
+        id="llama3-math",
+        sys_prompt=(
+            "<|begin_of_text|>"
+            # + "<|start_header_id|>system<|end_header_id|>\n\n"
+            # + "You are a helpful assistant."
+            # + "<|eot_id|>"
+        ),
+        query_prompt="<|start_header_id|>" + "user" + "<|end_header_id|>" + "\n\n",
+        # {query}
+        prompt_after_query="<|eot_id|>",
+        resp_prompt="<|start_header_id|>" + "assistant" + "<|end_header_id|>" + "\n\n",
+        prompt_before_resp="",
+        # {resp}
+        delim="<|eot_id|>" + "\n",
+        model_ids=[
+            "meta-llama--Meta-Llama-3-8B-Instruct",
+            "meta-llama--Meta-Llama-3-70B-Instruct",
+            "meta-llama--Meta-Llama-3.1-8B-Instruct",
+            "meta-llama--Meta-Llama-3.1-70B-Instruct",
+        ],
+    ),
 }
 
 
@@ -184,7 +206,13 @@ class PromptTemplate:
     def load_from_id_or_path(prompt_template: str = "alpaca") -> "PromptTemplate":
         """Load prompt template from ID or file path."""
         if prompt_template in PROMPT_TEMPLATE_ID2DICT:  # ID
-            return PromptTemplate(**PROMPT_TEMPLATE_ID2DICT[prompt_template])
+            return PromptTemplate(
+                **{
+                    k: v
+                    for k, v in PROMPT_TEMPLATE_ID2DICT[prompt_template].items()
+                    if k != "model_ids"
+                }
+            )
         elif isinstance(prompt_template, str) and os.path.exists(prompt_template):
             # File path
             stem = os.path.splitext(os.path.basename(prompt_template))[0]
@@ -216,7 +244,7 @@ class PromptTemplate:
     @staticmethod
     def get_prompt_template_from_prompt_type_and_model(
         prompt_type: str,
-        model_name_or_path: str,
+        model_dirname: str,
     ) -> "PromptTemplate":
         """Get the prompt template suitable for the model.
 
@@ -224,7 +252,7 @@ class PromptTemplate:
         ----------
         prompt_type : str
             Prompt type, like "cot" or "tool".
-        model_name_or_path : str
+        model_dirname : str
             HF ID or path to the model.
 
         Returns
@@ -234,29 +262,31 @@ class PromptTemplate:
         """
         prompt_template = None
         if prompt_type == "cot":
-            if model_name_or_path in BASE_MODEL_IDS + MATH_SHEPHERD_MODEL_IDS:
+            if model_dirname in BASE_MODEL_IDS + MATH_SHEPHERD_MODEL_IDS:
                 prompt_template = "qa"
-            elif model_name_or_path.startswith("dart-math"):
+            elif model_dirname.startswith("dart-math"):
                 prompt_template = "alpaca"
-            elif model_name_or_path in DEEPSEEK_INSTR_MODEL_IDS:
+            elif model_dirname in DEEPSEEK_INSTR_MODEL_IDS:
                 prompt_template = "deepseekmath"
-            elif model_name_or_path.startswith("Xwin-LM/Xwin-Math"):
+            elif model_dirname.startswith("Xwin-LM/Xwin-Math"):
                 prompt_template = "xwinmath"
-            elif model_name_or_path.startswith("TIGER-Lab--MAmmoTH2"):
+            elif model_dirname.startswith("TIGER-Lab--MAmmoTH2"):
                 prompt_template = "mammoth2-cot"
+            elif model_dirname in PROMPT_TEMPLATE_ID2DICT["llama3-math"]["model_ids"]:
+                prompt_template = "llama3-math"
             else:  # default
                 prompt_template = "alpaca"
         elif prompt_type == "tool":
-            if model_name_or_path in DEEPSEEK_INSTR_MODEL_IDS:
+            if model_dirname in DEEPSEEK_INSTR_MODEL_IDS:
                 prompt_template = "deepseekmath-tool"
 
         if prompt_template is None:
             raise ValueError(
-                f"Unknown prompt type {prompt_type} for model {model_name_or_path}."
+                f"Unknown prompt type {prompt_type} for model {model_dirname}."
             )
 
         prompt_template = PromptTemplate.load_from_id_or_path(prompt_template)
-        if "MMIQC" in model_name_or_path:
+        if "MMIQC" in model_dirname:
             prompt_template.prompt_before_resp = (
                 'Please solve the following problem and put your answer at the end with "The answer is: ".'
                 + " "
