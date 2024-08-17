@@ -455,10 +455,16 @@ DS_ID2N_SHOTS = {ds: len(egs) for ds, egs in ICL_EGS.items()}
 
 DS_ID2N_SHOTS.update(
     {
+        "math/test": 4,
         "math": 4,
+        "gsm8k/test": 4,
         "gsm8k": 4,
+        "mwpbench/college-math/test": 4,
+        "college-math": 4,
         "college_math": 4,
         "deepmind": 4,
+        "olympiadbench/OE_TO_maths_en_COMP": 4,
+        "olympiad-OE_TO_maths_en_COMP": 4,
         "olympiad_OE_TO_maths_en_COMP": 4,
         "theoremqa": 5,
     }
