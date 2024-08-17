@@ -23,6 +23,8 @@ BASE_MODEL_IDS = [
     "meta-llama--Llama-2-70b-hf",
     "meta-llama--Meta-Llama-3-8B",
     "meta-llama--Meta-Llama-3-70B",
+    "meta-llama--Meta-Llama-3.1-8B",
+    "meta-llama--Meta-Llama-3.1-70B",
     "EleutherAI--llemma_7b",
     "EleutherAI--llemma_34b",
     "QWen--QWen-1.5-72B",
