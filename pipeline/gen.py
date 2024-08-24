@@ -61,6 +61,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--revision",
+        type=str,
+        default=None,
+        help="Model revision.",
+    )
+
+    parser.add_argument(
         "--dtype",
         type=str,
         default="bfloat16",
@@ -94,6 +101,12 @@ if __name__ == "__main__":
         type=int,
         default=2048,
         help="Maximum number of new tokens.",
+    )
+    parser.add_argument(
+        "--ignore_eos",
+        action="store_true",
+        default=False,
+        help="Ignore EOS token in generation. Llama-3-8B(-Base) tends to decode EoS immediately. Try this if you encounter this issue.",
     )
     parser.add_argument(
         "--n_shots",
@@ -231,7 +244,7 @@ if __name__ == "__main__":
         temperature=args.temperature,
         top_p=args.top_p,
         max_tokens=args.max_new_toks,
-        ignore_eos=True,  # Llama-3-8B(-Base) tends to decode EoS immediately
+        ignore_eos=args.ignore_eos,
         skip_special_tokens=True,
         seed=args.inf_seed,
     )
@@ -244,7 +257,7 @@ if __name__ == "__main__":
 
     llm = LLM(
         model=args.model_name_or_path,
-        tokenizer=args.model_name_or_path,
+        revision=args.revision,
         tensor_parallel_size=torch.cuda.device_count(),
         dtype=args.dtype,
         seed=args.inf_seed,

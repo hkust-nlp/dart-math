@@ -126,17 +126,21 @@ class EvaluatorBase:
 
     def extract_ans(self, resp_str: str) -> str:
         """Extract answer segment from complete `resp`."""
-
-        resp = self.extract_explicit_ans(resp_str)
-        if not self.strict_extract and resp is None:  # use the last number
-            pattern = r"-?\d*\.?\d+"
-            resp = re.findall(pattern, resp_str.replace(",", ""))
-            if len(resp) >= 1:
-                resp = resp[-1]
-            else:
-                resp = ""
-
-        return resp
+        ans = self.extract_explicit_ans(resp_str)
+        if ans is not None:
+            return ans
+        elif not self.strict_extract:
+            # Speculate with the last latex formula
+            matches = re.findall(
+                r"(?:\$|\\\(|\\\[)([^\$]+)(?:\$|\\\(|\\\[)", resp_str, re.DOTALL
+            )
+            if len(matches) > 0:
+                return matches[-1]
+            # Speculate with the last number
+            matches = re.findall(r"-?\d*\.?\d+", resp_str.replace(",", ""))
+            if len(matches) > 0:
+                return matches[-1]
+        return ""  # Empty str if no answer is found
 
     def extract_explicit_ans(self, resp_str: str) -> str:
         resp_str = self.clean_trailing(resp_str)

@@ -328,6 +328,9 @@ To reproduce other inference settings, just refer to the paper and
 modify the `--model_name_or_path` and `--gen_save_path` arguments
 accordingly.
 
+- We observed that Llama-3-8B(-Base) tends to decode EoS immediately
+  sometimes. Try use `--ignore_eos` as a workaround.
+
 For other general inference settings, please modify the command or
 directly modify the
 [script](https://github.com/hkust-nlp/dart-math/blob/main/pipeline/gen.py).
