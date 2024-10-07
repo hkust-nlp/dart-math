@@ -5,10 +5,14 @@
 
 > Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving
 > \[NeurIPS 2024\]
+>
+> [Yuxuan Tong](https://tongyx361.github.io), Xiwen Zhang, Rui Wang,
+> Ruidong Wu, [Junxian He](https://jxhe.github.io)
 
 📝 [Paper@arXiv](https://arxiv.org/abs/2407.13690) \| 🤗
 [Datasets&Models@HF](https://huggingface.co/collections/hkust-nlp/dart-math-665704599b35de59f8fdf6c1)
-\| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math)
+\| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math) \| 🏆
+[Published@NeurIPS 2024](https://nips.cc/virtual/2024/poster/92959)
 
 🐦
 [Thread@X(Twitter)](https://x.com/tongyx361/status/1811413243350454455)
@@ -21,7 +25,8 @@
 >
 > 🔥 **News!!!**
 >
-> - \[2024/09/25\] 🎉 *DART-Math* is accepted to *NeurIPS 2024*!
+> - \[2024/09/25\] 🎉 *DART-Math* is accepted to [*NeurIPS
+>   2024*](https://nips.cc/virtual/2024/poster/92959)!
 > - \[2024/07/21\] Excited to find **our [`DART-Math-DSMath-7B`
 >   (Prop2Diff)](https://huggingface.co/hkust-nlp/dart-math-dsmath-7b-prop2diff)
 >   [comparable](https://github.com/project-numina/aimo-progress-prize/blob/main/report/numina_dataset.pdf)
