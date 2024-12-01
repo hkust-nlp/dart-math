@@ -11,8 +11,10 @@
 
 📝 [Paper@arXiv](https://arxiv.org/abs/2407.13690) \| 🤗
 [Datasets&Models@HF](https://huggingface.co/collections/hkust-nlp/dart-math-665704599b35de59f8fdf6c1)
-\| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math) \| 🏆
-[Published@NeurIPS 2024](https://nips.cc/virtual/2024/poster/92959)
+\| 🐱 [Code@GitHub](https://github.com/hkust-nlp/dart-math) \| 💡
+[Slides](https://docs.google.com/presentation/d/1ZBPsM5Ww3XbQo3zAE6y-lpfsWLsK6cAbCsF6lbNHDY4/edit?usp=sharing)
+\| 🏆 [Published@NeurIPS
+2024](https://nips.cc/virtual/2024/poster/92959)
 
 🐦
 [Thread@X(Twitter)](https://x.com/tongyx361/status/1811413243350454455)
