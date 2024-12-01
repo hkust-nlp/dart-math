@@ -402,7 +402,7 @@ baseline** in the paper, just set
 
 <summary>
 
-The off-the-shelf command to reproduce the data synthesis of the Vanilla
+The off-the-shelf command to reproduce the synthesis of the Vanilla
 Rejection Tuning (VRT) baseline in the paper
 </summary>
 
@@ -416,6 +416,31 @@ CUDA_VISIBLE_DEVICES="0" python pipeline/gen.py \
     --inf_seed -1 \
     --max_n_trials 52 --min_n_corrects 0 # no requirement for correct responses
 ```
+
+</details>
+
+<details>
+
+<summary>
+
+So sorry that it still need some manual efforts to reproduce the data
+synthesis of `DART-Math-Prop2Diff`. For now, please follow the
+instructions in the paper
+</summary>
+
+1.  Calculate “fail rate” (`1-pass_rate`) for each query in MATH and
+    GSM8K training sets (see the `pass_rate` field of query information
+    in
+    [MATH](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-math-query-info)
+    and
+    [GSM8K](https://huggingface.co/datasets/hkust-nlp/dart-math-pool-gsm8k-query-info)).
+2.  Calculate the target number of correct responses for each query in
+    the final training set. Note that we try to ensure at least one
+    correct response for each query in the `DART-Math` datasets, which
+    you could implement by rounding **up** when calculating the response
+    number for each query.
+3.  Sample responses for each query until the target number of correct
+    ones is met (thus proportional to its “fail rate”).
 
 </details>
 
