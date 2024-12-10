@@ -45,6 +45,8 @@
 >   Join the discussion under this [X
 >   thread](https://x.com/tongyx361/status/1815112376649134172)!
 
+![](https://neurips.cc/media/PosterPDFs/NeurIPS%202024/92959.png)
+
 <div align="center">
 
 <img src="https://tongyx361.github.io/assets/dart-math/main-results.png" alt="Main results averaged on 2 in-domain and 4 challenging out-of-domain mathematical reasoning benchmarks." height=300px>
