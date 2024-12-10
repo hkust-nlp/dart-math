@@ -1,0 +1,402 @@
+[
+  {
+    "objectID": "quick-start.html",
+    "href": "quick-start.html",
+    "title": "Quick Start",
+    "section": "",
+    "text": "We recommend using Conda and pip to manage your environment. Run the following commands to setup your environment:\ngit clone https://github.com/hkust-nlp/dart-math.git && cd dart-math\nconda create --name dart-math --yes python=3.11\nconda activate dart-math\npip install -r requirements.txt\npip install flash-attn --no-build-isolation\nFor common users/developers, please just run the following command the install the dart-math package:\npip install -e \".\"\nFor intended contributors, we recommend installing the package with the dev extras:\npip install -e \".[dev]\"\npip install pre-commit",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "quick-start.html#installation",
+    "href": "quick-start.html#installation",
+    "title": "Quick Start",
+    "section": "",
+    "text": "We recommend using Conda and pip to manage your environment. Run the following commands to setup your environment:\ngit clone https://github.com/hkust-nlp/dart-math.git && cd dart-math\nconda create --name dart-math --yes python=3.11\nconda activate dart-math\npip install -r requirements.txt\npip install flash-attn --no-build-isolation\nFor common users/developers, please just run the following command the install the dart-math package:\npip install -e \".\"\nFor intended contributors, we recommend installing the package with the dev extras:\npip install -e \".[dev]\"\npip install pre-commit",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "quick-start.html#dart_math.train-efficient-training-tricks",
+    "href": "quick-start.html#dart_math.train-efficient-training-tricks",
+    "title": "Quick Start",
+    "section": "dart_math.train: Efficient Training Tricks",
+    "text": "dart_math.train: Efficient Training Tricks\n\nAccelerating Several Times with Sequence Packing in 4 Lines of Code\nOur interfaces can be integrated with the HuggingFace datasets in 4 lines of code:\nfrom dart_math.train import monkey_patch4pack, make_supervised_dset\n# ...\nmonkey_patch4pack(model)\npack_dset = make_supervised_dset(tokenizer=tokenizer, data_path=data_args.data_path, pack_len=training_args.model_max_length, query_field=data_args.query_field,, resp_field=data_args.resp_field, prompt_template=data_args.prompt_template)\ntrainer = Trainer(model=model, tokenizer=tokenizer, train_dataset=pack_dset)\nmonkey_patch4pack would monkey-patch the model’s _get_unpad_data method.\nmake_supervised_dset would\n\nload, tokenize and cache the dataset;\npack the data points into computation sequences.\n\nFor a more detailed usage example, please refer to our training script for DART-Math.\nBesides, for general datasets objects that with the form [{\"input_ids\": [...], \"labels\": [...], \"attention_mask\"}: [...]}, ...], you can use PackedDataset to wrap it to apply sequence packing:\nfrom dart_math.train import PackedDataset\n# ...\ndset = PackedDataset(dataset=dset, tokenizer=tokenizer, pack_len=4096)\nFor more details or more general interfaces, please refer to the document of dart_math.train.",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "quick-start.html#dart_math.gen-efficient-generation-with-flexible-stopping-criteria",
+    "href": "quick-start.html#dart_math.gen-efficient-generation-with-flexible-stopping-criteria",
+    "title": "Quick Start",
+    "section": "dart_math.gen – Efficient Generation with Flexible Stopping Criteria",
+    "text": "dart_math.gen – Efficient Generation with Flexible Stopping Criteria\n\nDifficulty-Aware Rejection Sampling (with Code Execution) in 5 Lines of Code\nfrom dart_math.data import load_query_dps\nfrom dart_math.gen import gen, is_dp_dars_finished\nfrom dart_math.eval import EvaluatorMathBatch\n# ...\ngenerator = Generator(llm, sampling_params, resp_sample_cls=RespSampleVLLM, batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None), code_exec_cfg=CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None)\ngenerator.gen(query_dps=query_dps, dp_stop_criteria=is_dp_dars_finished, save_path=args.gen_save_path, n_paths_per_save=args.save_gen_path_bs)\n\ngenerator.gen generates with the vLLM model llm using sampling parameters sampling_params on query data points query_dps until every data point meets the stopping criteria dp_stop_criteria.\nSamples are generated in batch and evaluated with batch_evaluator if specified.\nGenerated samples are saved to save_path.\n\nFor a more detailed usage example, please refer to our generation script for DART-Math.",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "quick-start.html#dart_math.eval-elaborate-mathematical-evaluation",
+    "href": "quick-start.html#dart_math.eval-elaborate-mathematical-evaluation",
+    "title": "Quick Start",
+    "section": "dart_math.eval – Elaborate (Mathematical) Evaluation",
+    "text": "dart_math.eval – Elaborate (Mathematical) Evaluation\nEvaluatorMath implements an elaborate evaluation pipeline for mathematical reasoning tasks.\n\nfrom dart_math.eval import EvaluatorMath\n\nmath_evaluator = EvaluatorMath()\n\nFor more details or more general interfaces, please refer to the document of dart_math.eval.\n\nAccurately Extracting Answer Strings\nEvaluatorMath can:\n\nextract short answers from long responses rather accurately\nand normalize into a mathematical expression.\n\n\n# MATH-style boxed answer\nmath_evaluator.extract_ans(\"Therefore, $1+1=\\\\boxed{2}$.\")\n\n'2'\n\n\n\n# Answer around \"answer\"\nmath_evaluator.extract_ans(\n    \"Both $1$ and $11$ divide $11,$ so $\\\\boxed{11}=2$, and since $1,$ $2,$ $4,$ $5,$ $10,$ and $20$ divide $20,$ then $\\\\boxed{20}=6$. The inner expression, $\\\\boxed{11}\\\\times\\\\boxed{20}=2\\\\times6=12$. Finally, $\\\\boxed{12}=6$ because $1,$ $2,$ $3,$ $4,$ $6,$ and $12$ divide $12.$\\n\\nTherefore, $6$ is our answer. Please note that we have not boxed the correct answer as we normally do, as that would be especially confusing for this problem.\"\n)\n\n'6'\n\n\n\n# Use the last number by default\nmath_evaluator.extract_ans(\n    'First, we need to count the total number of letters in the word \"CIRCLE\". There are 6 letters.\\n\\nNext, we need to count the number of distinct letters. There are 6 distinct letters in the word \"CIRCLE\": C, I, R, L, E, and G.\\n\\nNow, let\\'s consider the arrangements of the distinct letters. The number of ways to arrange n distinct items is n factorial (n!). So, we have 6! = 6 × 5 × 4 × 3 × 2 × 1 = 720 ways to arrange the distinct letters.\\n\\nHowever, the word \"CIRCLE\" has one letter that repeats (the letter \\'C\\' repeats twice). We have over-counted the number of distinct arrangements by including arrangements that are just rotations of each other (for example, \"CIRCLE\" and \"LCIRCE\" are considered different arrangements here, but they are the same word when read).\\n\\nTo correct for this, we divide the total number of arrangements by the number of ways to arrange the repeated letters. The number of ways to arrange 2 identical items is 2! = 2 × 1 = 2. So, we divide the total number of arrangements by 2 to get the correct number of distinct arrangements.\\n\\nTherefore, the number of ways to arrange the letters of the word \"CIRCLE\" is 720 ÷ 2 = 360.'\n)\n# More cases ...\n\n'360'\n\n\n\n# Normalize fraction\nmath_evaluator.extract_ans(\"The answer is 1/2\")\n\n'\\\\frac{1}{2}'\n\n\n\n# Normalize pmatrix\nmath_evaluator.extract_ans(\n    \"The answer is \\\\begin{pmatrix} 3 \\\\\\\\ \\\\frac{\\\\pi}{2} \\\\end{pmatrix}\"\n)\n# More cases ...\n\n'\\\\begin{array}3\\\\\\\\frac{\\\\pi}{2}\\\\end{array}'\n\n\n\n\nCorrectly Processing Various Mathematical Objects / Special Text\nEvaluatorMath, based on regular expressions and SymPy symbolic calculation, is able to correctly process\n\nmost mathematical objects such as matrices (vectors), intervals, symbols besides numbers,\nas well as some special texts like bool expressions, dates and times.\n\n\nmath_evaluator.eq(\"x+y\", \"y+x\") == True  # Expression\n\nTrue\n\n\n\nmath_evaluator.eq(\"\\\\frac{1}{2}\", \"0.5\") == True  # LaTeX\n\nTrue\n\n\n\nmath_evaluator.eq(\n    \"\\\\begin{array}1\\\\\\\\2\\\\end{array}\",\n    \"1,2\",\n)  # Matrix (Vector)\n\nTrue\n\n\n\nmath_evaluator.eq(\"{1,2}\", \"{2,1}\", compare_sets=True)  # Set\n\nTrue\n\n\n\nmath_evaluator.eq(\"no\", \"false\")  # Bool\n# More mathematical objects and special texts ...\n\nTrue\n\n\n\n\nBatch Evaluation with Timeout\nSymPy symbolic calculation causes risks of ex-long evaluation time.\nTo address this, we implement EvaluatorMathBatch to evaluate in batch with timeout but still efficiently (based on asyncio coroutines instead of multiprocessing in previous implementations).\nanswers, corrects = math_evalutor.batch_eval(resp_samples)",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "quick-start.html#more-details",
+    "href": "quick-start.html#more-details",
+    "title": "Quick Start",
+    "section": "More Details",
+    "text": "More Details\nPlease browse along the sidebar for more details of diffrent modules.",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "eval.html",
+    "href": "eval.html",
+    "title": "(Math) Evalution",
+    "section": "",
+    "text": "from dart_math.eval import *\n\nmath_evaluator = EvaluatorMathBatch()\n\nWARNING 12-10 04:54:47 _custom_ops.py:14] Failed to import from vllm._C with ImportError('libcuda.so.1: cannot open shared object file: No such file or directory')",
+    "crumbs": [
+      "(Math) Evalution"
+    ]
+  },
+  {
+    "objectID": "eval.html#elaborate-mathematical-evaluation-pipeline",
+    "href": "eval.html#elaborate-mathematical-evaluation-pipeline",
+    "title": "(Math) Evalution",
+    "section": "Elaborate Mathematical Evaluation Pipeline",
+    "text": "Elaborate Mathematical Evaluation Pipeline\n\nsource\n\nEvaluatorMath\n\n EvaluatorMath (strict_extract:bool=False,\n                use_orig_eq_for_olympiadbench:bool=True,\n                include_percentage:bool=True, rel_tol:float=1e-09,\n                abs_tol:float=1e-08, percent_rel_tol:float=0.001,\n                ascii_only:bool=True)\n\nEvaluator for math problems, capable of extracting answer segment from complex resp and processing various mathematical objects (e.g. fractions, symbolic expressions, matrices, vectors) and special text (e.g. bool values).\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nstrict_extract\nbool\nFalse\n\n\n\nuse_orig_eq_for_olympiadbench\nbool\nTrue\nWhether to use the original implementation of eq for OlympiadBench.For OlympiadBench, by default, we use the official implementation of eq by He et al. (2024),which utilizing the numerical error range information provided with query,but keep the extract_nas of ours,because the official implementation fails to extract a non-negligible part of answers, especially for base model ICL.You could set use_orig_eq_for_olympiadbench to False to use our implementation of eqfor better consistency across benchmarks in our evaluation setting.\n\n\ninclude_percentage\nbool\nTrue\nWhether to include percentage comparisons.\n\n\nrel_tol\nfloat\n1e-09\nThe relative tolerance for numerical comparisons.\n\n\nabs_tol\nfloat\n1e-08\nThe absolute tolerance for numerical comparisons. Necessary for precision issues.\n\n\npercent_rel_tol\nfloat\n0.001\nThe relative tolerance for percentage comparisons. Relative for different surface forms (e.g. 99% v.s. 0.99).\n\n\nascii_only\nbool\nTrue\nOnly allowing ASCII characters\n\n\n\nEvaluatorMath implements an elaborate evaluation pipeline for mathematical reasoning tasks.\n\nAccurately Extracting Answer Strings\nEvaluatorMath can:\n\nextract short answers from long responses rather accurately\nand normalize into a mathematical expression.\n\n\n# MATH-style boxed answer\nmath_evaluator.extract_ans(\"Therefore, $1+1=\\\\boxed{2}$.\")\n\n'2'\n\n\n\n# Answer around \"answer\"\nmath_evaluator.extract_ans(\n    \"Both $1$ and $11$ divide $11,$ so $\\\\boxed{11}=2$, and since $1,$ $2,$ $4,$ $5,$ $10,$ and $20$ divide $20,$ then $\\\\boxed{20}=6$. The inner expression, $\\\\boxed{11}\\\\times\\\\boxed{20}=2\\\\times6=12$. Finally, $\\\\boxed{12}=6$ because $1,$ $2,$ $3,$ $4,$ $6,$ and $12$ divide $12.$\\n\\nTherefore, $6$ is our answer. Please note that we have not boxed the correct answer as we normally do, as that would be especially confusing for this problem.\"\n)\n\n'6'\n\n\n\n# Use the last number by default\nmath_evaluator.extract_ans(\n    'First, we need to count the total number of letters in the word \"CIRCLE\". There are 6 letters.\\n\\nNext, we need to count the number of distinct letters. There are 6 distinct letters in the word \"CIRCLE\": C, I, R, L, E, and G.\\n\\nNow, let\\'s consider the arrangements of the distinct letters. The number of ways to arrange n distinct items is n factorial (n!). So, we have 6! = 6 × 5 × 4 × 3 × 2 × 1 = 720 ways to arrange the distinct letters.\\n\\nHowever, the word \"CIRCLE\" has one letter that repeats (the letter \\'C\\' repeats twice). We have over-counted the number of distinct arrangements by including arrangements that are just rotations of each other (for example, \"CIRCLE\" and \"LCIRCE\" are considered different arrangements here, but they are the same word when read).\\n\\nTo correct for this, we divide the total number of arrangements by the number of ways to arrange the repeated letters. The number of ways to arrange 2 identical items is 2! = 2 × 1 = 2. So, we divide the total number of arrangements by 2 to get the correct number of distinct arrangements.\\n\\nTherefore, the number of ways to arrange the letters of the word \"CIRCLE\" is 720 ÷ 2 = 360.'\n)\n# More cases ...\n\n'360'\n\n\n\n# Normalize fraction\nmath_evaluator.extract_ans(\"The answer is 1/2\")\n\n'\\\\frac{1}{2}'\n\n\n\n# Normalize pmatrix\nmath_evaluator.extract_ans(\n    \"The answer is \\\\begin{pmatrix} 3 \\\\\\\\ \\\\frac{\\\\pi}{2} \\\\end{pmatrix}\"\n)\n# More cases ...\n\n'\\\\begin{array}3\\\\\\\\frac{\\\\pi}{2}\\\\end{array}'\n\n\n\n\nCorrectly Processing Various Mathematical Objects / Special Text\nEvaluatorMath, based on regular expressions and SymPy symbolic calculation, is able to correctly process\n\nmost mathematical objects such as matrices (vectors), intervals, symbols besides numbers,\nas well as some special texts like bool expressions, dates and times.\n\n\nmath_evaluator.eq(\"x+y\", \"y+x\") == True  # Expression\n\nTrue\n\n\n\nmath_evaluator.eq(\"\\\\frac{1}{2}\", \"0.5\") == True  # LaTeX\n\nTrue\n\n\n\nmath_evaluator.eq(\n    \"\\\\begin{array}1\\\\\\\\2\\\\end{array}\",\n    \"1,2\",\n)  # Matrix (Vector)\n\nTrue\n\n\n\nmath_evaluator.eq(\"{1,2}\", \"{2,1}\", compare_sets=True)  # Set\n\nTrue\n\n\n\nmath_evaluator.eq(\"no\", \"false\")  # Bool\n# More mathematical objects and special texts ...\n\nTrue\n\n\nMore test cases:\n\n\nCode\ntest_eq(math_evaluator.eq(\"251,7\\\\\\\\ \\\\noindent\", \"0\"), False)\ntest_eq(math_evaluator.eq(\"3.54*10^{-7}\", \"3.54e-07\"), True)\ntest_eq(math_evaluator.eq(r\"\\frac{1}{2}\", \"0.5\"), True)\ntest_eq(math_evaluator.eq(\"1\", \"100\"), False)\ntest_eq(math_evaluator.eq(\"100\", \"1\"), False)\ntest_eq(math_evaluator.eq(\"3.04\", \"0.0304\", False), True)\ntest_eq(math_evaluator.eq([\"0.0304\", 0.0304], \"3.04\"), True)\ntest_eq(math_evaluator.eq(\"x&lt;-1\", \"x&gt;3\"), False)\ntest_eq(\n    math_evaluator.eq(\"(-\\\\infty,0)\\\\cup(0,\\\\infty)\", \"(-\\\\infty,0)\\\\cup(0,\\\\infty)\"),\n    True,\n)\ntest_eq(math_evaluator.eq(\"1+2,2+1\", \"2+1,1+2\"), True)\ntest_eq(math_evaluator.eq(5, 5), True)\ntest_eq(math_evaluator.eq(0.1 + 0.2, 0.3), True)  # `0.1 + 0.2 == 0.3` is `False`\ntest_eq(math_evaluator.eq(\"x + y\", \"y + x\"), True)\ntest_eq(math_evaluator.eq(\"C\", \"C\"), True)\ntest_eq(math_evaluator.eq(\"1,234\", \"1234\"), True)\ntest_eq(math_evaluator.eq(\"12,34\", \"(12,34)\"), True)\n\ntest_eq(math_evaluator.eq(\"\\\\$ 5\", \"5\"), True)\ntest_eq(math_evaluator.eq(\"3 * \\\\sqrt{13}\", \"3\\\\sqrt{13}\"), True)\ntest_eq(math_evaluator.eq(\"\\\\pi/2\", \"\\\\frac{\\\\pi}{2}\"), True)\ntest_eq(math_evaluator.eq(\"(3,\\\\pi/2)\", \"(3,\\\\frac{\\\\pi}{2})\"), True)\ntest_eq(math_evaluator.eq(\"23000\", \"\\\\$23{,}000\"), True)\ntest_eq(\n    math_evaluator.eq(r\"\\left(1,2\\right)\", r\"\\left(2,1\\right)\", compare_sets=True), True\n)\ntest_eq(math_evaluator.eq(\"White\", \"white\"), True)\ntest_eq(math_evaluator.eq(\"[0,3)\", \"[0,1]\"), False)\ntest_eq(math_evaluator.eq(\"[0,1]\", \"[0,3)\"), False)\ntest_eq(math_evaluator.eq(\"1001.5\", \"1001\"), False)\ntest_eq(math_evaluator.eq(\"\\\\frac{2003}{2}\", \"1001\"), False)\n\n\n\nsource\n\n\n\nEvaluatorMathBatch\n\n EvaluatorMathBatch (strict_extract:bool=False,\n                     use_orig_eq_for_olympiadbench:bool=True,\n                     include_percentage:bool=True, rel_tol:float=1e-09,\n                     abs_tol:float=1e-08, percent_rel_tol:float=0.001,\n                     ascii_only:bool=True, timeout:int=5)\n\nBatch evaluator for math problems, capable of extracting answer segment from complex resp and processing various mathematical objects (e.g. fractions, symbolic expressions, matrices, vectors) and special text (e.g. bool values).\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nstrict_extract\nbool\nFalse\n\n\n\nuse_orig_eq_for_olympiadbench\nbool\nTrue\nWhether to use the original implementation of eq for OlympiadBench.For OlympiadBench, by default, we use the official implementation of eq by He et al. (2024),which utilizing the numerical error range information provided with query,but keep the extract_nas of ours,because the official implementation fails to extract a non-negligible part of answers, especially for base model ICL.You could set use_orig_eq_for_olympiadbench to False to use our implementation of eqfor better consistency across benchmarks in our evaluation setting.\n\n\ninclude_percentage\nbool\nTrue\nWhether to include percentage comparisons.\n\n\nrel_tol\nfloat\n1e-09\nThe relative tolerance for numerical comparisons.\n\n\nabs_tol\nfloat\n1e-08\nThe absolute tolerance for numerical comparisons. Necessary for precision issues.\n\n\npercent_rel_tol\nfloat\n0.001\nThe absolute tolerance for percentage comparisons.\n\n\nascii_only\nbool\nTrue\nOnly allowing ASCII characters\n\n\ntimeout\nint\n5\n\n\n\n\nSymPy symbolic calculation causes risks of ex-long evaluation time.\nTo address this, we implement EvaluatorMathBatch to evaluate in batch with timeout but still efficiently (based on asyncio coroutines instead of multiprocessing in previous implementations).\nanswers, corrects = math_evalutor.batch_eval(resp_samples)",
+    "crumbs": [
+      "(Math) Evalution"
+    ]
+  },
+  {
+    "objectID": "eval.html#api-reference",
+    "href": "eval.html#api-reference",
+    "title": "(Math) Evalution",
+    "section": "API Reference",
+    "text": "API Reference\n\nsource\n\nEvaluatorBase\n\n EvaluatorBase (strict_extract:bool=False)\n\nBase class for evaluators.\n\nsource\n\n\nEvaluatorBatchBase\n\n EvaluatorBatchBase (strict_extract:bool=False, timeout:int=5)\n\nBase class for batch evaluators, providing additional method for batch evaluation.\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nstrict_extract\nbool\nFalse\n\n\n\ntimeout\nint\n5\nThe timeout for each evaluation in seconds.\n\n\n\n\n\nParsing LaTeX\n\nInterval\n\nfrom dart_math.eval import latex2sympy_interval\n\n\nlatex2sympy_interval(\"(-11,-10)\\\\cup\\\\{-\\\\sqrt{110}\\\\}\")\n\n\\(\\displaystyle \\left(-11, -10\\right)\\)\n\n\n\nlatex2sympy_interval(\"(-\\\\infty, 0) \\\\cup (0, \\\\infty)\")\n\n\\(\\displaystyle \\left(-\\infty, 0\\right) \\cup \\left(0, \\infty\\right)\\)\n\n\n\nlatex2sympy_interval(\"(a+b,b]\")\n\n\\(\\displaystyle \\left(a + b, b\\right]\\)\n\n\n\n\nMatrix / Vector\n\nmath_evaluator.latex2matrix(r\"\\sqrt{400\\cos^2(9\\pi/44)},\\frac{\\pi}{4}\")\n\n\\(\\displaystyle \\left[\\begin{matrix}\\sqrt{400 \\cos^{2}{\\left(\\frac{9 \\pi}{44} \\right)}} & \\frac{\\pi}{4}\\end{matrix}\\right]\\)\n\n\n\nmath_evaluator.latex2matrix(\n    r\"\\begin{pmatrix} \\frac{1}{2} & 0 & -\\frac{\\sqrt{3}}{2} \\\\ 0 & 1 & 0 \\\\ \\frac{\\sqrt{3}}{2} & 0 & \\frac{1}{2} \\end{pmatrix}\"\n)\n\n\\(\\displaystyle \\left[\\begin{matrix}\\frac{1}{2} & 0 & - \\frac{\\sqrt{3}}{2}\\\\0 & 1 & 0\\\\\\frac{\\sqrt{3}}{2} & 0 & \\frac{1}{2}\\end{matrix}\\right]\\)\n\n\n\ntest_eq(\n    math_evaluator.latex2matrix(\"\\\\begin{pmatrix}-18\\\\\\\\-49\\\\\\\\96\\\\end{pmatrix}\"),\n    Matrix([[-18, -49, 96]]),\n)\ntest_eq(\n    math_evaluator.latex2matrix(\"\\\\begin{pmatrix} 2 & 3 \\\\\\\\ 0 & -2 \\\\end{pmatrix}\"),\n    Matrix([[2, 3], [0, -2]]),\n)\n\n\n\n\nNormalization\n\ntest_eq(math_evaluator.norm_math_str(\"251,7\\\\\\\\ \\\\noindent\"), \"251,7\")\n\n\ntest_eq(fix_a_slash_b(\"(3/4)\\\\sqrt{3}\"), \"(\\\\frac{3}{4})\\\\sqrt{3}\")\n\n\ntest_eq(math_evaluator.norm_pm(\"x\\\\pmy\"), \"x-y,x+y\")\ntest_eq(math_evaluator.norm_pm(\"a\\\\mpb\"), \"a-b,a+b\")\ntest_eq(math_evaluator.norm_pm(\"1\\\\pm\\\\sqrt{19}\"), \"1-\\\\sqrt{19},1+\\\\sqrt{19}\")\ntest_eq(math_evaluator.norm_pm(r\"\\{1\\pm\\sqrt{5},-2\\}\"), \"1-\\\\sqrt{5},1+\\\\sqrt{5},-2\")\ntest_eq(\n    math_evaluator.norm_pm(\"\\\\(\\\\frac{1\\\\pm\\\\sqrt{17}}{4}\\\\)\"),\n    \"\\\\frac{1-\\\\sqrt{17}}{4},\\\\frac{1+\\\\sqrt{17}}{4}\",\n)\ntest_eq(\n    math_evaluator.norm_pm(r\"\\frac{1\\pm\\sqrt{1-\\frac{2}{\\sqrt{3}}}}{1}\"),\n    \"\\\\frac{1-\\\\sqrt{1-\\\\frac{2}{\\\\sqrt{3}}}}{1},\\\\frac{1+\\\\sqrt{1-\\\\frac{2}{\\\\sqrt{3}}}}{1}\",\n)\n\n\ntest_eq(norm_deg(r\"20^\\circ\"), r\"20\")\ntest_eq(norm_deg(r\"\\sin 20^\\circ\"), r\"\\sin {20*\\frac{\\pi}{180}}\")\n\n\ntest_eq(math_evaluator.norm_basic_fn(r\"sinx\"), r\"\\sin^{1}x\")\ntest_eq(math_evaluator.norm_basic_fn(r\"\\sin^2x\"), r\"\\sin^{2}x\")\n\n\n\nProcessing Sets\n\ntest_eq(math_evaluator.extract_set(\"{2,1}\"), [\"1\", \"2\"])\n\n\ntest_eq(is_set(\"{2,1}\"), True)\ntest_eq(is_set(\"orange\"), False)\ntest_eq(is_set(\"x&lt;-1orx&gt;3\"), True)\ntest_eq(is_set(\"(3/4)sqrt(3)\"), False)\n\n\n\nManipulating Strings\n\ntest_eq(math_evaluator.remove_first_paren_pair(\"{white}\", \"{\"), \"white\")",
+    "crumbs": [
+      "(Math) Evalution"
+    ]
+  },
+  {
+    "objectID": "utils.html",
+    "href": "utils.html",
+    "title": "Utilities",
+    "section": "",
+    "text": "from dart_math.utils import *",
+    "crumbs": [
+      "Utilities"
+    ]
+  },
+  {
+    "objectID": "utils.html#prompt",
+    "href": "utils.html#prompt",
+    "title": "Utilities",
+    "section": "Prompt",
+    "text": "Prompt\n\nsource\n\nPromptTemplate\n\n PromptTemplate (id:str='alpaca', sys_prompt:str='Below is an instruction\n                 that describes a task. Write a response that\n                 appropriately completes the request.\\n\\n',\n                 query_prompt:str='### Instruction:\\n',\n                 prompt_after_query:str='\\n\\n', resp_prompt:str='###\n                 Response:\\n', prompt_before_resp:str='',\n                 delim:str='\\n\\n')\n\nPrompt template. The complete prompt is in the form {sys_prompt}{eg_qa1}{delim}{eg_qa2}{delim}...{delim}{eg_qaN}{delim}{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}. default: PROMPT_TEMPLATE_ID2DICT[“alpaca”]\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nid\nstr\nalpaca\nShort name as ID of the prompt template, like “alpaca”.\n\n\nsys_prompt\nstr\nBelow is an instruction that describes a task. Write a response that appropriately completes the request.\nSystem prompt as the beginning of the full prompt.\n\n\nquery_prompt\nstr\n### Instruction:\nSimple prompt as delimiter between response and new query.\n\n\nprompt_after_query\nstr\n\nPrompt to append after the raw query, like “Let’s think step by step.”.\n\n\nresp_prompt\nstr\n### Response:\nSimple prompt as delimiter between query and response.\n\n\nprompt_before_resp\nstr\n\n\n\n\ndelim\nstr\n\nDelimiter between query-response pairs.\n\n\n\n\nsource\n\nPromptTemplate.load_from_id_or_path\n\n PromptTemplate.load_from_id_or_path (prompt_template:str='alpaca')\n\nLoad prompt template from ID or file path.\n\nsource\n\n\nPromptTemplate.get_prompt_template_from_prompt_type_and_model\n\n PromptTemplate.get_prompt_template_from_prompt_type_and_model\n                                                                (prompt_ty\n                                                                pe:str, mo\n                                                                del_dirnam\n                                                                e:str)\n\nGet the prompt template suitable for the model.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nprompt_type\nstr\nPrompt type, like “cot” or “tool”.\n\n\nmodel_dirname\nstr\nHF ID or path to the model.\n\n\nReturns\nPromptTemplate\nThe prompt template suitable for the model.\n\n\n\n\nsource\n\n\nPromptTemplate.make_qa_pair\n\n PromptTemplate.make_qa_pair (query:str, response:str)\n\nMake a QA pair of {query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}{response}.\n\nsource\n\n\nPromptTemplate.make_full_prompt\n\n PromptTemplate.make_full_prompt (query:str,\n                                  eg_qas:list[tuple[str,str]]=[])\n\nMake full prompt as input to the model. Format: f”{sys_prompt}{eg_qa1}{eg_qa2}…{eg_qaN}{query_prompt}{query}{prompt_after_query}{resp_prompt}{prompt_before_resp}“.\n\n\nExamples\n\ndeepseekmath_prompt_template = PromptTemplate.load_from_id_or_path(\"deepseekmath\")\n\n\ndeepseekmath_prompt_template.make_full_prompt(\"What is 2+2?\")\n\n'User: What is 2+2?\\nPlease reason step by step, and put your final answer within \\\\boxed{}.\\n\\nAssistant: '\n\n\n\ndeepseekmath_prompt_template.make_full_prompt(\"What is 2+2?\", [(\"What is 1+1?\", \"2\")])\n\n'User: What is 1+1?\\nPlease reason step by step, and put your final answer within \\\\boxed{}.\\n\\nAssistant: 2&lt;｜end▁of▁sentence｜&gt;User: What is 2+2?\\nPlease reason step by step, and put your final answer within \\\\boxed{}.\\n\\nAssistant: '",
+    "crumbs": [
+      "Utilities"
+    ]
+  },
+  {
+    "objectID": "utils.html#logging",
+    "href": "utils.html#logging",
+    "title": "Utilities",
+    "section": "Logging",
+    "text": "Logging\n\nsource\n\ninit_logging\n\n init_logging (log_path:str=None, format:str='[%(levelname)s]\n               [%(asctime)s.%(msecs)d] [pid %(process)d]\n               [%(pathname)s:%(lineno)d:%(funcName)s]\\n%(message)s',\n               datefmt:str='%Y-%m-%d %H:%M:%S', level:int=20,\n               force:bool=True)\n\nInitialize logging configuration.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nlog_path\nstr\nNone\nFile path to save log to.format : str, default: “[%(levelname)s] [%(asctime)s.%(msecs)d] [pid %(process)d] [%(pathname)s:%(lineno)d:%(funcName)s]\n\n\nformat\nstr\n[%(levelname)s] [%(asctime)s.%(msecs)d] [pid %(process)d] [%(pathname)s:%(lineno)d:%(funcName)s]%(message)s\nLogging format\n\n\ndatefmt\nstr\n%Y-%m-%d %H:%M:%S\n\n\n\nlevel\nint\n20\n\n\n\nforce\nbool\nTrue\n\n\n\nReturns\nNone",
+    "crumbs": [
+      "Utilities"
+    ]
+  },
+  {
+    "objectID": "utils.html#io",
+    "href": "utils.html#io",
+    "title": "Utilities",
+    "section": "IO",
+    "text": "IO\n\nPath\n\nsource\n\nget_pathname_from_name_or_path\n\n get_pathname_from_name_or_path (name_or_path:str)\n\nGet the name suitable for file system from the HF-style name_or_path.\n\n\n\nJSON(L)\n\nBased on json (more versatile) and orjson (more efficient).\n\n\nsource\n\nload_jsonl\n\n load_jsonl (fpath:str, use_tqdm:bool=False)\n\nLoad JSONL file.\n\nsource\n\n\nsave_jsonl\n\n save_jsonl (data:list, fpath:str)\n\nSave JSONL file.\n\nsource\n\n\nload_json\n\n load_json (fpath:str)\n\nLoad JSON file.\n\nsource\n\n\nsave_json\n\n save_json (data:dict, fpath:str, indent:int=2)\n\nSave JSON file.",
+    "crumbs": [
+      "Utilities"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "🎯DART-Math",
+    "section": "",
+    "text": "Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving [NeurIPS 2024]\nYuxuan Tong, Xiwen Zhang, Rui Wang, Ruidong Wu, Junxian He\n📝 Paper@arXiv | 🤗 Datasets&Models@HF | 🐱 Code@GitHub | 💡 Slides | 🏆 Published@NeurIPS 2024\n🐦 Thread@X(Twitter) | 🐶 中文博客@知乎 | 📊 Leaderboard@PapersWithCode | 📑 BibTeX\nMATH and GSM8K are in-domain, while College(Math) is out-of-domain. Performance here are of DART-Math models fine-tuned from DeepSeekMath-7B. Bold means the best score on the respective base model here.\nMATH and GSM8K are in-domain, while CollegeMath is out-of-domain. Bold means the best score on the respective base model here.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#dart-math-models-sota-on-various-in-domain-and-out-of-domain-benchmarks",
+    "href": "index.html#dart-math-models-sota-on-various-in-domain-and-out-of-domain-benchmarks",
+    "title": "🎯DART-Math",
+    "section": "DART-Math Models: SOTA on Various In-Domain and Out-of-Domain Benchmarks",
+    "text": "DART-Math Models: SOTA on Various In-Domain and Out-of-Domain Benchmarks\nDART-Math models achieve performance superior or competitive to previous SOTAs on 2 in-domain and 4 challenging out-of-domain mathematical reasoning benchmarks, despite using much smaller datasets and no proprietary model like GPT-4.\n\n\n\nModel\nMATH\nGSM8K\nCollege\nDM\nOlympiad\nTheorem\nAVG\n\n\n\n\nGPT-4 (0314)\n52.6\n94.7\n24.4\n–\n–\n–\n–\n\n\nLlama3-70B-MetaMath\n44.9\n88.0\n31.9\n53.2\n11.6\n21.9\n41.9\n\n\nDART-Math-Llama3-70B\n56.1\n89.6\n37.9\n64.1\n20.0\n28.2\n49.3\n\n\nDeepSeekMath-7B-MetaMath\n43.7\n81.8\n33.7\n53.0\n13.6\n23.2\n41.5\n\n\nDeepSeekMath-7B-RL\n53.1\n88.4\n41.3\n58.3\n18.7\n35.9\n49.3\n\n\nDART-Math-DSMath-7B\n53.6\n86.8\n40.7\n61.6\n21.7\n32.2\n49.4\n\n\nMistral-7B-MetaMath\n29.8\n76.5\n19.3\n28.0\n5.9\n14.0\n28.9\n\n\nDART-Math-Mistral-7B\n45.5\n81.1\n29.4\n45.1\n14.7\n17.0\n38.8\n\n\nLlama3-8B-MetaMath\n32.5\n77.3\n20.6\n35.0\n5.5\n13.8\n30.8\n\n\nDART-Math-Llama3-8B\n46.6\n81.1\n28.8\n48.0\n14.5\n19.4\n39.7\n\n\n\nAbbreviations: College (CollegeMath), DM (DeepMind Mathematics), Olympiad (OlympiadBench-Math), Theorem (TheoremQA). Bold means the best score by SFT on the respective base model here. DART-Math models here are fine-tuned on the DART-Math-Hard dataset.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#dart-math-datasets-sota-data-efficient-open-source",
+    "href": "index.html#dart-math-datasets-sota-data-efficient-open-source",
+    "title": "🎯DART-Math",
+    "section": "DART-Math Datasets: SOTA & Data-Efficient & Open-Source",
+    "text": "DART-Math Datasets: SOTA & Data-Efficient & Open-Source\nDART-Math are the state-of-the-art and data-efficient open-source instruction tuning datasets for mathematical reasoning.\nMost of previous datasets are constructed with ChatGPT, and many of them are not open-source, especially for ones of the best performance.\n\n\n\nMath SFT Dataset\n# of Samples\nMATH\nGSM8K\nCollege\nSynthesis Agent(s)\nOpen-Source\n\n\n\n\nWizardMath\n96k\n32.3\n80.4\n23.1\nGPT-4\n✗\n\n\nMetaMathQA\n395k\n29.8\n76.5\n19.3\nGPT-3.5\n✓\n\n\nMMIQC\n2294k\n37.4\n75.4\n28.5\nGPT-4+GPT-3.5+Human\n✓\n\n\nOrca-Math\n200k\n–\n–\n–\nGPT-4\n✓\n\n\nXwin-Math-V1.1\n1440k\n45.5\n84.9\n27.6\nGPT-4\n✗\n\n\nKPMath-Plus\n1576k\n46.8\n82.1\n–\nGPT-4\n✗\n\n\nMathScaleQA\n2021k\n35.2\n74.8\n21.8\nGPT-3.5+Human\n✗\n\n\nDART-Math-Uniform\n591k\n43.5\n82.6\n26.9\nDeepSeekMath-7B-RL\n✓\n\n\nDART-Math-Hard\n585k\n45.5\n81.1\n29.4\nDeepSeekMath-7B-RL\n✓\n\n\n\nMATH and GSM8K are in-domain, while College(Math) is out-of-domain. Performance here are of models fine-tuned from Mistral-7B, except for Xwin-Math-V1.1 based on Llama2-7B. Bold/Italic means the best/second best score here.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#dars-difficulty-aware-rejection-sampling",
+    "href": "index.html#dars-difficulty-aware-rejection-sampling",
+    "title": "🎯DART-Math",
+    "section": "DARS – Difficulty-Aware Rejection Sampling",
+    "text": "DARS – Difficulty-Aware Rejection Sampling\nOur analysis of previous datasets reveals severe biases towards easy queries, with frequent failures to generate any correct response for the most challenging queries.\nThis primarily arises from their constuction method, vanilla rejection sampling, where the same number of responses are sampled for each query, yet the likelihood of obtaining correct responses for difficult queries is significantly lower, sometimes even zero.\nMotivated by the observation above and the intuitive that difficult samples are critical for learning complexing reasoning, we propose Difficulty-Aware Rejection Sampling (DARS) to eliminate the bias towards easy queries. Specifically, we introduce two strategies to increase the number of correct responses for difficult queries:\n\nUniform, which involves sampling responses for each query until each query accumulates \\(k_u\\) correct responses, where \\(k_u\\) is a preset hyperparameter determined by the desired size of the synthetic dataset;\nProp2Diff, where we continue sampling responses until the number of correct responses for each query is proportional to its difficulty score. The most challenging queries will receive \\(k_p\\) responses and kp is a hyperparameter. This method introduces a deliberate bias in the opposite direction to vanilla rejection sampling, towards more difficult queries, inspired by previous works that demonstrate difficult samples can be more effective to enhance model capabilities (Sorscher et al., 2022; Liu et al., 2024b).\n\nSee Figure 1 (Right) for examples of DART-Math-Uniform by DARS-Uniform and DART-Math-Hard by DARS-Prop2Diff.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#quick-start-reproduction",
+    "href": "index.html#quick-start-reproduction",
+    "title": "🎯DART-Math",
+    "section": "🚀 Quick Start / Reproduction",
+    "text": "🚀 Quick Start / Reproduction\n\n⚙️ Setup\nWe recommend using Conda and pip to manage your environment. Run the following commands to setup your environment:\ngit clone https://github.com/hkust-nlp/dart-math.git && cd dart-math\nconda create --name dart-math --yes python=3.11\nconda activate dart-math\npip install -r requirements.txt\npip install flash-attn --no-build-isolation\nFor common users/developers, please just run the following command the install the dart-math package:\npip install -e \".\"\nFor intended contributors, we recommend installing the package with the dev extras:\npip install -e \".[dev]\"\npre-commit install\nconda install quarto -c conda-forge # for building the documentation\n\n\n🔨 Training\nWe implement an efficient training pipeline utilizing various techniques. Notably, sequence packing accelerates training by 6-8x in our setting and possibly more in other settings. (See how to integrate sequence packing in 4 lines of code.)\nPlease refer to\n\nthe training Python script for code of training based on the HuggingFace Trainer and utilizing sequence packing.\nthe single-node/multi-node training bash script for code of training based on HuggingFace accelerate and deepspeed\n\nHere, we provide some example commands as well as reproduction instructions for our work:\n\nSingle-Node Training\nFor example, to reproduce training DART-Math-Llama3-8B-Prop2Diff on a node of 8 A100 GPUs, please run the following command:\nbash scripts/train-single-node.sh \\\n    --data_path \"hkust-nlp/dart-math-hard\" \\\n    --model_path \"meta-llama/Meta-Llama-3-8B\" \\\n    --lr \"5e-5\" --bs 64 --n_grad_acc_steps 1 --n_epochs 1 \\\n    --gpu_ids \"0,1,2,3,4,5,6,7\" \\\n    --output_dir \"models/dart-math-llama3-8b-prop2diff\"\nTo reproduce other training settings, just refer to the paper and modify the --data_path, --model_path, --lr, --n_grad_acc_steps, --n_epochs and --output_dir arguments accordingly.\n\n\nMulti-Node Training\nTo reproduce training DART-Math-Llama3-70B-Prop2Diff on 4 nodes of 8 A100 GPUs, please first edit the cfgs/deepspeed/hostfile according to your enviroment and then run the following command:\nbash scripts/train-multi-node.sh \\\n    --data_path \"hkust-nlp/dart-math-hard\" \\\n    --model_path \"meta-llama/Meta-Llama-3-70B\" \\\n    --lr \"2e-5\" --bs 64 --n_grad_acc_steps 1 --n_epochs 1 \\\n    --n_nodes 4 \\\n    --output_dir \"models/dart-math-llama3-70b-prop2diff\"\nTo reproduce training DART-Math-Llama3-70B-Uniform on 4 nodes of 8 A100 GPUs, just change --data_path to \"hkust-nlp/dart-math-uniform\".\n\n\nThe off-the-shelf command to train DART-Math-Llama3-70B-Uniform\n\nbash scripts/train-multi-node.sh \\\n    --data_path \"hkust-nlp/dart-math-uniform\" \\\n    --model_path \"meta-llama/Meta-Llama-3-70B\" \\\n    --lr \"2e-5\" --bs 64 --n_grad_acc_steps 1 --n_epochs 1 \\\n    --n_nodes 4 \\\n    --output_dir \"models/dart-math-llama3-70b-prop2diff\"\n\n\n\n\n⚖️ Evaluation\nWe utilize vLLM to accelerate inference and an elaborate answer extraction and correctness judgement pipeline based on regular expressions and SymPy symbolic calculation, which is able to correctly process\n\nmost mathematical objects such as matrices (vectors), intervals, symbols besides numbers,\nas well as some special texts like bool expressions, dates and times.\n\nFor example, to reproduce one pass of greedy decoding with DART-Math-Mistral-7B-Prop2Diff on the 6 benchmarks in Table 2 on GPU 0, please run the following command:\nCUDA_VISIBLE_DEVICES=\"0\" python pipeline/gen.py \\\n    --gen_save_path \"data/res/dart-math-mistral-7b-prop2diff.jsonl\" \\\n    --model_name_or_path \"hkust-nlp/dart-math-mistral-7b-prop2diff\" \\\n    --datasets \"math/test\" \"gsm8k/test\" \"mwpbench/college-math/test\" \"deepmind-mathematics\" \\\n        \"olympiadbench/OE_TO_maths_en_COMP\" \"theoremqa\" \\\n    --max_new_toks 2048 --temperature 0 \\\n    --prompt_template \"cot\" --n_shots -1 \\\n    --inf_seed -1 \\\n    --max_n_trials 1\nTo reproduce other inference settings, just refer to the paper and modify the --model_name_or_path and --gen_save_path arguments accordingly.\n\nWe observed that Llama-3-8B(-Base) tends to decode EoS immediately sometimes. Try use --ignore_eos as a workaround.\n\nFor other general inference settings, please modify the command or directly modify the script.\n\nTo test base models, please add the corresponding ID to BASE_MODEL_IDS from dart_math.utils.\nTo test instruct models, please add the corresponding prompt template to PROMPT_TEMPLATE_ID2DICT from dart_math.utils and specify with --prompt_template.\n\nYou can also add the --gen_only option to only generate responses without evaluation and use the EvaluatorMathBatch to grade the generations by yourself. Please check the grading script for example.\n\n\n🗂 Data Synthesis\nOur data synthesis pipeline is compatible with the evaluation pipeline, please modify the --min_n_corrects and --max_n_trials arguments to meet your needs.\nFor example, to reproduce the synthesis of DART-Math-Uniform, amortizing the workload to multiple GPUs, please run the following command:\ngpu_ids_list=(\"0\" \"1\" \"2\" \"3\" \"4\" \"5\" \"6\" \"7\")\nmin_n_corrects=40\nmin_n_corrects_per_gpu=$((min_n_corrects / ${#gpu_ids_list[@]})) # 5 here\n\nmkdir -p logs\nfor gpu_ids in \"${gpu_ids_list[@]}\"; do\n    exp_name=\"dart-math-uniform-gpu${gpu_ids}\"\n    CUDA_VISIBLE_DEVICES=\"${gpu_ids}\" python pipeline/gen.py \\\n        --gen_save_path \"data/res/${exp_name}.jsonl\" \\\n        --model_name_or_path \"deepseek-ai/deepseek-math-7b-rl\" \\\n        --datasets \"math/train\" \"gsm8k-fix/train\" \\\n        --max_new_toks 2048 --temperature 1.6 --top_p 0.95 \\\n        --prompt_template \"deepseekmath\" --n_shots 0 \\\n        --inf_seed -1 \\\n        --min_n_corrects \"${min_n_corrects_per_gpu}\" --max_n_trials 0 \\\n        &gt;\"logs/${exp_name}.log\" 2&gt;&1 &\n    # NOTE: `--max_n_trials 0` means possible infinite trials, kill the job manually when needed\ndone\nNOTE: Some erroneous labels exist in the GSM8K dataset, so we tried to fix them and produced gsm8k-fix. \nTo reproduce the data synthesis of the Vanilla Rejection Tuning (VRT) baseline in the paper, just set --max_n_trials 52 --min_n_corrects 0.\n\n\nThe off-the-shelf command to reproduce the synthesis of the Vanilla Rejection Tuning (VRT) baseline in the paper\n\nCUDA_VISIBLE_DEVICES=\"0\" python pipeline/gen.py \\\n    --gen_save_path \"data/res/dart-math-uniform.jsonl\" \\\n    --model_name_or_path \"deepseek-ai/deepseek-math-7b-rl\" \\\n    --datasets \"math/train\" \"gsm8k-fix/train\" \\\n    --max_new_tokens 2048 --temperature 1.6 --top_p 0.95 \\\n    --prompt_template \"cot\" --n_shots 0 \\\n    --inf_seed -1 \\\n    --max_n_trials 52 --min_n_corrects 0 # no requirement for correct responses\n\n\n\nSo sorry that it still need some manual efforts to reproduce the data synthesis of DART-Math-Prop2Diff. For now, please follow the instructions in the paper\n\n\nCalculate “fail rate” (1-pass_rate) for each query in MATH and GSM8K training sets (see the pass_rate field of query information in MATH and GSM8K).\nCalculate the target number of correct responses for each query in the final training set. Note that we try to ensure at least one correct response for each query in the DART-Math datasets, which you could implement by rounding up when calculating the response number for each query.\nSample responses for each query until the target number of correct ones is met (thus proportional to its “fail rate”).\n\n\nAfter the synthesis, you can use the curation script to curate the final dataset.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#dart-math-package-efficient-and-flexible-training-inference-evaluation-pipelines",
+    "href": "index.html#dart-math-package-efficient-and-flexible-training-inference-evaluation-pipelines",
+    "title": "🎯DART-Math",
+    "section": "dart-math Package: Efficient and Flexible Training & Inference & Evaluation Pipelines",
+    "text": "dart-math Package: Efficient and Flexible Training & Inference & Evaluation Pipelines\nWe package our code of effcient and flexible training & inference & evaluation pipelines into dart-math and document it at this website.\nThe dart-math package provides the following useful features besides ones mentioned above:\n\nTool-integrated reasoning: reasoning in natural language interleaved with Python code\nExample command to evaluate DeepSeekMath-7B-RL with tool-integrated reasoning (following the DeepSeekMath offical setting):\nCUDA_VISIBLE_DEVICES=\"0\" python pipeline/gen.py \\\n    --gen_save_path \"data/res/dsmath-7b-rl-tool-math-test.jsonl\" \\\n    --model_name_or_path \"deepseek-ai/deepseek-math-7b-rl\" \\\n    --datasets \"math-test\" \\\n    --max_new_toks 2048 --temperature 0 \\\n    --prompt_template \"deepseekmath-tool\" --n_shots 0 \\\n    --max_n_calls 1 --trunc_len 50 50 \\\n    --inf_seed -1 \\\n    --max_n_trials 1\n# Reproduced performance (with our evaluator): 56.08%\n# (58.8% reported originally with DeepSeekMath evaluator)\nFor other general inference settings, please modify the options related to the Generator.code_exec_cfg attribute in the command or the script.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#contribution",
+    "href": "index.html#contribution",
+    "title": "🎯DART-Math",
+    "section": "🍀 Contribution",
+    "text": "🍀 Contribution\n\nFile Structure\ndart-math\n├── data\n├── cfgs # Configurations\n├── utils # Repository utilities\n├── dart_math # Package code for common utilities\n├── nbs # Notebooks and other files to run tests and generate documentation with https://nbdev.fast.ai\n├── pipeline # Reusable (Python / Shell) scripts or notebooks\n└── scripts # Setting-specific scripts\n\n\nChecklist Before Commit\n\nprepare-commit.sh\nRun the prepare-commit.sh to clean the notebooks and export scripts for pipeline notebooks, generate documentation, run tests, render README if needed:\nbash utils/prepare-commit.sh\nPlease refer to the comments in the script for how it works.\n\n\nManual Modification List\n\nAdd if __name__ == \"__main__\": to scripts that might use vLLM tensor parallelism\n\ngen.py",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#star-history",
+    "href": "index.html#star-history",
+    "title": "🎯DART-Math",
+    "section": "🌟 Star History",
+    "text": "🌟 Star History",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#acknowledgements",
+    "href": "index.html#acknowledgements",
+    "title": "🎯DART-Math",
+    "section": "🙏 Acknowledgements",
+    "text": "🙏 Acknowledgements\nThanks to:\n\nnbdev for generating the wonderful documentation website,\nstanford_alpaca for reference code about training,\nfunctionary for reference code about sequence packing.\n@HYZ17 for extensive tests and helpful suggestions.",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "index.html#citation",
+    "href": "index.html#citation",
+    "title": "🎯DART-Math",
+    "section": "☕️ Citation",
+    "text": "☕️ Citation\nIf you find our data, model or code useful for your work, please kindly cite our paper:\n@article{tong2024dartmath,\n  title={DART-Math: Difficulty-Aware Rejection Tuning for Mathematical Problem-Solving},\n  author={Yuxuan Tong and Xiwen Zhang and Rui Wang and Ruidong Wu and Junxian He},\n  year={2024},\n  eprint={2407.13690},\n  archivePrefix={arXiv},\n  primaryClass={cs.CL},\n  url={https://arxiv.org/abs/2407.13690},\n}",
+    "crumbs": [
+      "🎯DART-Math"
+    ]
+  },
+  {
+    "objectID": "gen.html",
+    "href": "gen.html",
+    "title": "Generation",
+    "section": "",
+    "text": "from dart_math.gen import *\n\nWARNING 12-10 04:54:46 _custom_ops.py:14] Failed to import from vllm._C with ImportError('libcuda.so.1: cannot open shared object file: No such file or directory')",
+    "crumbs": [
+      "Generation"
+    ]
+  },
+  {
+    "objectID": "gen.html#difficulty-aware-rejection-sampling-with-code-execution-in-5-lines-of-code",
+    "href": "gen.html#difficulty-aware-rejection-sampling-with-code-execution-in-5-lines-of-code",
+    "title": "Generation",
+    "section": "Difficulty-Aware Rejection Sampling (with Code Execution) in 5 Lines of Code",
+    "text": "Difficulty-Aware Rejection Sampling (with Code Execution) in 5 Lines of Code\nfrom dart_math.data import load_query_dps\nfrom dart_math.gen import gen, is_dp_dars_finished\nfrom dart_math.eval import EvaluatorMathBatch\n# ...\ngenerator = Generator(llm, sampling_params, resp_sample_cls=RespSampleVLLM, batch_evaluator=(EvaluatorMathBatch() if not args.gen_only else None), code_exec_cfg=CodeExecCfg.load_from_id_or_path(args.code_exec_cfg) if args.code_exec_cfg else None)\ngenerator.gen(query_dps=query_dps, dp_stop_criteria=is_dp_dars_finished, save_path=args.gen_save_path, n_paths_per_save=args.save_gen_path_bs)\n\ngenerator.gen generates with the vLLM model llm using sampling parameters sampling_params on query data points query_dps until every data point meets the stopping criteria dp_stop_criteria.\nSamples are generated in batch and evaluated with batch_evaluator if specified.\nGenerated samples are saved to save_path.\n\nFor a more detailed usage example, please refer to our generation script for DART-Math.\n\nsource\n\nGenerator\n\n Generator (llm:vllm.entrypoints.llm.LLM,\n            sampling_params:vllm.sampling_params.SamplingParams,\n            resp_sample_cls:type=&lt;class 'dart_math.data.RespSampleVLLM'&gt;,\n            batch_evaluator:dart_math.eval.EvaluatorBatchBase|None=None,\n            code_exec_cfg:dart_math.exec.CodeExecCfg|str|None=None)\n\nGenerator with various features such as stopping criteria and code execution.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nllm\nLLM\n\nThe vllm model to generate with (or other objects with compatible generate interfaces).\n\n\nsampling_params\nSamplingParams\n\nThe sampling parameters for the llm (or other objects with compatible interfaces).NOTE: n &gt; 1 might cause bugs in vllm for now (0.4.2).\n\n\nresp_sample_cls\ntype\nRespSampleVLLM\nThe class to collect the generated response as.\n\n\nbatch_evaluator\ndart_math.eval.EvaluatorBatchBase | None\nNone\nThe batch evaluator to evaluate the generated responses. None means no evaluation.\n\n\ncode_exec_cfg\ndart_math.exec.CodeExecCfg | str | None\nNone\nThe tool using configuration.\n\n\n\n\nsource\n\nGenerator.gen\n\n Generator.gen (query_dps:list[dart_math.data.QueryDataPoint],\n                dp_stop_criteria:Callable[[dart_math.data.QueryDataPoint],\n                bool], save_path:str|None=None,\n                n_paths_per_save:int|None=None)\n\nGenerate responses on the given query data points with specified stopping criteria.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nquery_dps\nlist\n\nThe query-level data points to generate responses on.\n\n\ndp_stop_criteria\nCallable\n\nThe function to check if a query data point should be stopped generating on.\n\n\nsave_path\nstr | None\nNone\nPath to save the generated reponses to. None or \"\" means no saving.\n\n\nn_paths_per_save\nint | None\nNone\nResponse-level samples or None if saving.\n\n\nReturns\nlist[dart_math.data.RespSampleBase] | None\n\nThe generated responses or None if saving.\n\n\n\n\nsource\n\n\nGenerator.gen_pure\n\n Generator.gen_pure (input_strs:list[str])\n\nCode execution only supports one-path generation for now.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ninput_strs\nlist\nThe input strings as direct input to the model.\n\n\nReturns\nlist\nThe generated responses grouped by input strings.",
+    "crumbs": [
+      "Generation"
+    ]
+  },
+  {
+    "objectID": "gen.html#api-reference",
+    "href": "gen.html#api-reference",
+    "title": "Generation",
+    "section": "API Reference",
+    "text": "API Reference\n\nData Preprocessing\n\nsource\n\nget_icl_egs\n\n get_icl_egs (dataset:str, n_shots:int=None, model_dirname:str|None=None)\n\nGet the ICL examples for the dataset.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ndataset\nstr\n\nPreset dataset ID.\n\n\nn_shots\nint\nNone\nNumber of examples in the few-shot prompt. None / Negative means adaptive to the datasets.\n\n\nmodel_dirname\nstr | None\nNone\nHF ID or path to the model.\n\n\nReturns\nlist\n\nICL examples adaptive to the dataset (and model).\n\n\n\n\n\n\nStopping Criteria\n\nsource\n\nis_dp_dars_finished\n\n is_dp_dars_finished (dp:dart_math.data.QueryDataPoint)\n\nJudge whether DARS for a data point is finished and return the stopping reason or None if not finished.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ndp\nQueryDataPoint\nQuery data point having at least the following attributes: max_n_trials (and n_trials), min_n_corrects (and n_corrects).\n\n\nReturns\nstr | None\nThe stopping reason or None if not finished.\n\n\n\n\n\n\nIO\n\nsource\n\nget_res_fname\n\n get_res_fname (model_name_or_path:str, max_new_toks:int,\n                temperature:float, top_p:float, prompt_template:str,\n                dataset:str, n_shots:int, tag:str, inf_seed:int)\n\nGet the JSONL file name to save results to.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nmodel_name_or_path\nstr\nHF ID or path to the model.\n\n\nmax_new_toks\nint\nMaximum length of the model output in token.\n\n\ntemperature\nfloat\nTemperature for sampling.\n\n\ntop_p\nfloat\nTop-p for sampling.\n\n\nprompt_template\nstr\nID or path to the prompt template.\n\n\ndataset\nstr\nName of the dataset to generate on.\n\n\nn_shots\nint\nNumber of egs in few-shot prompt.\n\n\ntag\nstr\nTag describing sample number informantion for the result file.\n\n\ninf_seed\nint\nSeed for randomness.\n\n\nReturns\nstr\nPath to the result file.",
+    "crumbs": [
+      "Generation"
+    ]
+  },
+  {
+    "objectID": "exec.html",
+    "href": "exec.html",
+    "title": "Code Execution",
+    "section": "",
+    "text": "from dart_math.exec import *",
+    "crumbs": [
+      "Code Execution"
+    ]
+  },
+  {
+    "objectID": "exec.html#execution-code-cells-as-in-notebooks",
+    "href": "exec.html#execution-code-cells-as-in-notebooks",
+    "title": "Code Execution",
+    "section": "Execution Code Cells as in Notebooks",
+    "text": "Execution Code Cells as in Notebooks\n\nfrom dart_math.exec import *\n\nexec_cells(\n    [\n        \"print('Hey, Jude')\",\n        \"print('Don\\\\'t make it bad')\",\n        \"print('Take a sad song and make it better')\",\n    ]\n)  # Only return the stdout and stderr of the last cell\n\n('Take a sad song and make it better', '')\n\n\n\nsource\n\nexec_cells\n\n exec_cells (cells:list[str])\n\nExecute the code cells like a notebook and return the stdout and stderr of the last cell. Modified from - https://github.com/Kipok/NeMo-Skills/blob/6a909ec0974340b02a1083dce90e79bea30ecb60/nemo_skills/code_execution/sandbox.py#L168-L233 - https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/infer/run_tool_integrated_eval.py#L163-L180\n\n\n\n\nType\nDetails\n\n\n\n\ncells\nlist\nThe code cells to execute.\n\n\nReturns\nstr",
+    "crumbs": [
+      "Code Execution"
+    ]
+  },
+  {
+    "objectID": "exec.html#unified-language-code-context-configuration",
+    "href": "exec.html#unified-language-code-context-configuration",
+    "title": "Code Execution",
+    "section": "Unified Language & Code Context Configuration",
+    "text": "Unified Language & Code Context Configuration\n\ncode_exec_cfg = CodeExecCfg.load_from_id_or_path(\"python\")\ncode_exec_cfg.__dict__\n\n{'input_begin': '```python',\n 'input_end': '```',\n 'output_code_prefix': 'print(',\n 'output_begin': '```output',\n 'output_end': '```',\n 'timeout': 5,\n 'max_n_calls': None,\n 'trunc_len': None,\n 'elipsis': '...'}\n\n\n\ncode_exec_cfg\n\n&lt;dart_math.exec.CodeExecCfg&gt;\n\n\n\nEG_LANG_CODE_CONTEXT = \"\"\"\n```python\nprint('Hey, Jude')\n```\n\n```output\nHey, Jude\n```\n\nDon't make it bad\n\n```python\nprint('Take a sad song and make it better')\n```\n\n\"\"\"\n\n\ncode_exec_cfg.no_cells_todo(EG_LANG_CODE_CONTEXT)\n\n0\n\n\n\ncode_exec_cfg.no_cells_todo(\n    EG_LANG_CODE_CONTEXT + \"```output\\nTake a sad song and make it better```\"\n)\n\n1\n\n\n\ncode_exec_cfg.extract_cells(EG_LANG_CODE_CONTEXT)\n\n[\"print('Hey, Jude')\", \"print('Take a sad song and make it better')\"]\n\n\n\ncode_exec_cfg.wrap_output(\"Take a sad song and make it better\")\n# Usually appended with some newlines\n\n'```output\\nTake a sad song and make it better\\n```'\n\n\n\nsource\n\nCodeExecCfg\n\n CodeExecCfg (input_begin:str='```python', input_end:str='```',\n              output_code_prefix:str='print(',\n              output_begin:str='```output', output_end:str='```',\n              timeout:int=5, max_n_workers:int=4, max_n_calls:int=None,\n              trunc_len:tuple[int,int]=None, elipsis:str='...')\n\nConfiguration for code execution.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ninput_begin\nstr\npython |  | | input_end | str |\n\n\n\noutput_code_prefix\nstr\nprint(\nPrefix of code that will be executed to display the output.\n\n\noutput_begin\nstr\noutput |  | | output_end | str |\n\n\n\ntimeout\nint\n5\nTimeout in seconds for code execution.\n\n\nmax_n_workers\nint\n4\nThe maximum number of CPU core workers to execute the code with multi-processing.\n\n\nmax_n_calls\nint\nNone\nThe maximum number of calls to the code execution function.This could be large because there is token length limit already.None / Non-positive values mean no limit.\n\n\ntrunc_len\ntuple\nNone\nThe maximum lengths to truncate the output into the beginning and end.None / double non-positive values like (0, 0) mean no truncation.\n\n\nelipsis\nstr\n…\nThe elipsis to use when truncating the output.\n\n\n\n\nsource\n\nCodeExecCfg.load_from_id_or_path\n\n CodeExecCfg.load_from_id_or_path (tool_config:str='python')\n\nLoad the configuration from the ID or path.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ntool_config\nstr\npython\nID / Path to file of the code executeion configuration.\n\n\nReturns\nCodeExecCfg\n\nThe code execution configuration object.\n\n\n\n\nsource\n\n\nCodeExecCfg.no_cells_todo\n\n CodeExecCfg.no_cells_todo (context:str)\n\nJudge if there are no code cells to execute.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ncontext\nstr\nThe whole context containing all the code cells.\n\n\nReturns\nint\n0: Normal1: No code cells to execute2: Output cells are more than input cells\n\n\n\n\ntest_eq(\n    code_exec_cfg.no_cells_todo(EG_LANG_CODE_CONTEXT), False\n)  # 2 code cells but only 1 executed to output\n\ntest_eq(\n    code_exec_cfg.no_cells_todo(\n        EG_LANG_CODE_CONTEXT + \"```output\\nTake a sad song and make it better```\"\n    ),\n    True,\n)  # All the code cells have been executed\n\n\nsource\n\n\nCodeExecCfg.extract_cells\n\n CodeExecCfg.extract_cells (text:str)\n\nExtract code cells from the text.\n\n\n\n\nType\nDetails\n\n\n\n\ntext\nstr\nThe text to extract code cells from.\n\n\nReturns\nlist\nThe extracted code cells.\n\n\n\n\ntest_eq(\n    code_exec_cfg.extract_cells(EG_LANG_CODE_CONTEXT),\n    [\n        \"print('Hey, Jude')\",\n        # \"print('Don\\\\'t make it bad')\",\n        \"print('Take a sad song and make it better')\",\n    ],\n)\n\n\nsource\n\n\nCodeExecCfg.wrap_output\n\n CodeExecCfg.wrap_output (output:str)\n\nReturn f\"{self.output_begin}\\n{output}\\n{self.output_end}\"\n\ntest_eq(\n    code_exec_cfg.wrap_output(\"Take a sad song and make it better\"),\n    \"```output\\nTake a sad song and make it better\\n```\",\n)",
+    "crumbs": [
+      "Code Execution"
+    ]
+  },
+  {
+    "objectID": "parallel.html",
+    "href": "parallel.html",
+    "title": "Parallelism",
+    "section": "",
+    "text": "source\n\n\n\n async_wrap (func:Callable)\n\nWrap a synchronous function func into an asynchronous function.",
+    "crumbs": [
+      "Parallelism"
+    ]
+  },
+  {
+    "objectID": "parallel.html#asyncio-utilities",
+    "href": "parallel.html#asyncio-utilities",
+    "title": "Parallelism",
+    "section": "",
+    "text": "source\n\n\n\n async_wrap (func:Callable)\n\nWrap a synchronous function func into an asynchronous function.",
+    "crumbs": [
+      "Parallelism"
+    ]
+  },
+  {
+    "objectID": "parallel.html#timeout",
+    "href": "parallel.html#timeout",
+    "title": "Parallelism",
+    "section": "Timeout",
+    "text": "Timeout\n\nBased on asyncio\n\n\nsource\n\nseq_consume_preset_queue_w_each_timeout\n\n seq_consume_preset_queue_w_each_timeout (consumer:Callable, idxed_kwargs_\n                                          queue:_queue.SimpleQueue|multipr\n                                          ocessing.queues.SimpleQueue|list\n                                          , timeout:int=5,\n                                          pbar:tqdm.std.tqdm=None)\n\nSequentially run computation-intensive consumer along a preset (no more input) indexed task idxed_kwargs_queue with each task having timeout. queue.SimpleQueue is not thread-safe, don’t run multiple consumers in the same process. However, multiprocessing.SimpleQueue is process-safe based on pipe, you can run multiple consumers in the same number of processes. NOTE: co-routine would get stuck with some consumer like creating and running new interactive IPython shells even with timeout set.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nconsumer\nCallable\n\nAn Awaitable coroutine function.\n\n\nidxed_kwargs_queue\n_queue.SimpleQueue | multiprocessing.queues.SimpleQueue | list\n\nIndexed kwargs queue, comprising elements like (idx, kwargs).For the weird type hint, refer to https://github.com/python/cpython/issues/99509\n\n\ntimeout\nint\n5\nTimeout for each task.\n\n\npbar\ntqdm\nNone\nProgress bar to update. None means no progress bar.\n\n\nReturns\nlist\n\nIndexed return values, comprising elements like (idx, retval).",
+    "crumbs": [
+      "Parallelism"
+    ]
+  },
+  {
+    "objectID": "data.html",
+    "href": "data.html",
+    "title": "Datasets",
+    "section": "",
+    "text": "from dart_math.data import *\n\nWARNING 12-10 04:54:47 _custom_ops.py:14] Failed to import from vllm._C with ImportError('libcuda.so.1: cannot open shared object file: No such file or directory')",
+    "crumbs": [
+      "Datasets"
+    ]
+  },
+  {
+    "objectID": "data.html#preset-datasets",
+    "href": "data.html#preset-datasets",
+    "title": "Datasets",
+    "section": "Preset Datasets",
+    "text": "Preset Datasets\nPreset datasets so far:\n\n\n\nDataset\nID\nSize\nStored At\nSource\n\n\n\n\nMATH/Test\n\"math/test\"\n5000\n🤗 HuggingFace\n🤗 hendrycks/competition_math\n\n\nMATH/Train\n\"math/train\"\n7500\n🤗 HuggingFace\n🤗 hendrycks/competition_math\n\n\nGSM8K/Test\n\"gsm8k/test\"\n1319\n🤗 HuggingFace\n🤗 gsm8k\n\n\nGSM8K(Fixed)/Train(DEPRECATED: GSM8K/Train)\n\"gsm8k-fix/train\"(DEPRECATED: \"gsm8k/train\")\n7473\n🤗 HuggingFace(DEPRECATED: 🤗 HuggingFace)\n🤗 gsm8k\n\n\nMWPBench/CollegeMath/Test\n\"mwpbench/college-math/test\"\n2818\n🎯 dart/data/dsets\n🐱 microsoft/unilm/mathscale/MWPBench\n\n\nMWPBench/CollegeMath/Train\n\"mwpbench/college-math/train\"\n1281\n🎯 dart/data/dsets\n🐱 microsoft/unilm/mathscale/MWPBench\n\n\nMWPBench/GaokaoBench\n\"mwpbench/gaokaobench\"\n508\n🎯 dart/data/dsets\n🐱 microsoft/unilm/mathscale/MWPBench\n\n\nMWPBench/FreshGaokaoMath2023\n\"mwpbench/fresh-gaokao-math-2023\"\n30\n🎯 dart/data/dsets\n🐱 microsoft/unilm/mathscale/MWPBench\n\n\nDeepMind Mathematics\n\"deepmind-mathematics\"\n1000\n🎯 dart/data/dsets\n🐱 google-deepmind/mathematics_dataset\n\n\nOlympiadBench-Math\n\"olympiadbench/OE_TO_maths_en_COMP\"\n675\n🎯 dart/data/dsets\n🐱 OpenBMB/OlympiadBench\n\n\nTheoremQA\n\"theoremqa\"\n800\n🎯 dart/data/dsets\n🐱 TIGER-AI-Lab/TheoremQA\n\n\nOdyssey-Math\n\"odyssey-math\"\n386\n🎯 dart/data/dsets\n🐱 protagolabs/odyssey-math\n\n\nAOPS\n\"aops\"\n3886\n🎯 dart/data/dsets\n🌐 AOPS\n\n\n\nFor other datasets, please refer to load_query_dps to add by yourself.\n\nsource\n\nload_query_dps\n\n load_query_dps (dataset:str|list[str]='math-test',\n                 max_n_trials:int|list[int]=1,\n                 min_n_corrects:int|list[int]=0,\n                 prompt_template:str='alpaca', n_shots:int=-1)\n\nLoad dataset(s) as QueryDataPoints. If needed, please add datasets here following the format of the existing datasets, or specify the dataset .json path with the stem name as dataset ID.\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ndataset\nstr | list[str]\nmath-test\n(List of) dataset IDor path to dataset of samples with “query” and “ref_ans” fields.Path will not use other two arguments.\n\n\nmax_n_trials\nint | list[int]\n1\n(List of) maximum number of raw responses to be generated for each dataset.Non-positive value or None means no limit.\n\n\nmin_n_corrects\nint | list[int]\n0\n(List of) minimum number of correct responses to be generated for each dataset.Non-positive value or None means no limit.\n\n\nprompt_template\nstr\nalpaca\nID / Path of the prompt template.\n\n\nn_shots\nint\n-1\n\n\n\nReturns\nlist\n\nQueryDataPoint to be input to dart.gen.gen.",
+    "crumbs": [
+      "Datasets"
+    ]
+  },
+  {
+    "objectID": "data.html#unified-data-templates",
+    "href": "data.html#unified-data-templates",
+    "title": "Datasets",
+    "section": "Unified Data Templates",
+    "text": "Unified Data Templates\nWe unify the data format across dart.\n\nsource\n\nQueryDataPoint\n\n QueryDataPoint (dataset:str, query:str, ref_ans:str,\n                 prompt_template:dart_math.utils.PromptTemplate='alpaca',\n                 n_shots:int=-1, n_trials:int=0, n_corrects:int=0,\n                 max_n_trials:int|None=None, min_n_corrects:int|None=None,\n                 **kwargs:dict[str,typing.Any])\n\nThe query-level data point to generate responses with vllm using sampling_params (and evaluate with evaluator) on.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ndataset\nstr\n\nThe dataset name the the query belongs to. E.g. “math”.\n\n\nquery\nstr\n\nRaw query, without other prompt.\n\n\nref_ans\nstr\n\nThe short reference answer to the query.\n\n\nprompt_template\nPromptTemplate\nalpaca\nThe prompt template object to use.\n\n\nn_shots\nint\n-1\nNumber of examples in the few-shot prompt. Negative means adaptive to the datasets.\n\n\nn_trials\nint\n0\nNumber of raw responses already generated for the query.\n\n\nn_corrects\nint\n0\nNumber of correct responses already generated for the query.\n\n\nmax_n_trials\nint | None\nNone\nMaximum number of trials to generate a response, by default NoneNone or Negative means no limit.\n\n\nmin_n_corrects\nint | None\nNone\nMaximum number of trials to generate a response, by default NoneNone or Negative means no limit.\n\n\nkwargs\ndict\n\nOther fields to store.\n\n\n\n\nsource\n\n\nRespSampleBase\n\n RespSampleBase (dataset:str, query:str, ref_ans:str, resp:str, agent:str,\n                 prompt_template:str=None, ans:str=None,\n                 correct:bool=None)\n\nThe response-level data point containing the query-level data point and other response-level information.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ndataset\nstr\n\nThe dataset name the the query belongs to.\n\n\nquery\nstr\n\nThe input query to generate responses on.\n\n\nref_ans\nstr\n\nThe reference answer to the query.\n\n\nresp\nstr\n\nThe generated response.\n\n\nagent\nstr\n\n\n\n\nprompt_template\nstr\nNone\n\n\n\nans\nstr\nNone\nThe answer in the generated response, by default None\n\n\ncorrect\nbool\nNone\nWhether the generated response is correct, by default None\n\n\n\n\nsource\n\n\nRespSampleVLLM\n\n RespSampleVLLM (dataset:str, query:str, ref_ans:str, abs_tol:float=None,\n                 resp:str=None, finish_reason:str=None,\n                 stop_reason:str=None, cumulative_logprob:float=None,\n                 ans:str=None, correct:bool=None, **kwargs)\n\nThe response-level data point from vllm model, containg extra fields like finish_reason, stop_reason, cumulative_logprob.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ndataset\nstr\n\nThe dataset name the the query belongs to.\n\n\nquery\nstr\n\nThe input query to generate responses on.\n\n\nref_ans\nstr\n\nThe reference answer to the query.\n\n\nabs_tol\nfloat\nNone\nThe absolute tolerance of the answer.\n\n\nresp\nstr\nNone\nThe generated response.\n\n\nfinish_reason\nstr\nNone\nThe reason for finishing the generation from vllm\n\n\nstop_reason\nstr\nNone\nThe reason for stopping the generation from vllm, e.g. EoS token.\n\n\ncumulative_logprob\nfloat\nNone\nThe cumulative log probability of the generated response.\n\n\nans\nstr\nNone\nThe generated response.\n\n\ncorrect\nbool\nNone\nWhether the generated response is correct.\n\n\nkwargs\n\n\nOther fields to store.",
+    "crumbs": [
+      "Datasets"
+    ]
+  },
+  {
+    "objectID": "train.html",
+    "href": "train.html",
+    "title": "Training",
+    "section": "",
+    "text": "from dart_math.train import *",
+    "crumbs": [
+      "Training"
+    ]
+  },
+  {
+    "objectID": "train.html#accelerating-several-times-with-sequence-packing-in-4-lines-of-code",
+    "href": "train.html#accelerating-several-times-with-sequence-packing-in-4-lines-of-code",
+    "title": "Training",
+    "section": "Accelerating Several Times with Sequence Packing in 4 Lines of Code",
+    "text": "Accelerating Several Times with Sequence Packing in 4 Lines of Code\nOur interfaces can be integrated with the HuggingFace datasets in 4 lines of code:\nfrom dart_math.train import monkey_patch4pack, make_supervised_dset\n# ...\nmonkey_patch4pack(model)\npack_dset = make_supervised_dset(tokenizer=tokenizer, data_path=data_args.data_path, pack_len=training_args.model_max_length, query_field=data_args.query_field,, resp_field=data_args.resp_field,, prompt_template=data_args.prompt_template)\ntrainer = Trainer(model=model, tokenizer=tokenizer, train_dataset=pack_dset)\nmonkey_patch4pack would monkey-patch the model’s _get_unpad_data method.\nmake_supervised_dset would\n\nload, tokenize and cache the dataset;\npack the data points into computation sequences.\n\nFor a more detailed usage example, please refer to our training script for DART-Math.\nBesides, for general datasets objects that with the form [{\"input_ids\": [...], \"labels\": [...], \"attention_mask\"}: [...]}, ...], you can use PackedDataset to wrap it to apply sequence packing:\nfrom dart_math.train import PackedDataset\n# ...\ndset = PackedDataset(dataset=dset, tokenizer=tokenizer, pack_len=4096)\n\nsource\n\nmonkey_patch4pack\n\n monkey_patch4pack (name_or_cls_or_obj:str|type|transformers.configuration\n                    _utils.PretrainedConfig)\n\nMonkey patch the modeling module for packing. Must be called before instantiating the model.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nname_or_cls_or_obj\nstr | type | transformers.configuration_utils.PretrainedConfig\nName containing the model name like “llama” / “mistral” / …\n\n\nReturns\nNone\n\n\n\n\n\nsource\n\n\nmake_supervised_dset\n\n make_supervised_dset\n                       (tokenizer:transformers.tokenization_utils.PreTrain\n                       edTokenizer, data_path:str|list[str],\n                       query_field:str|list[str]='query',\n                       resp_field:str|list[str]='response',\n                       tokenized_cache_home:str='/home/runner/work/dart-\n                       math/dart-math/data/cache-tokenized',\n                       shuffle_seed:int=42, pack_len:int=None, prompt_temp\n                       late:str|dict[str,str]|dart_math.utils.PromptTempla\n                       te='alpaca')\n\nMake dataset for supervised fine-tuning.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ntokenizer\nPreTrainedTokenizer\n\n(HF) tokenizer.\n\n\ndata_path\nstr | list[str]\n\nDataset ID or path.\n\n\nquery_field\nstr | list[str]\nquery\nField name for query.\n\n\nresp_field\nstr | list[str]\nresponse\nField name for response.\n\n\ntokenized_cache_home\nstr\n/home/runner/work/dart-math/dart-math/data/cache-tokenized\nPath to the tokenized cache home. Useful when repeatedly training on large datasets. None or “” means no cache.\n\n\nshuffle_seed\nint\n42\nSeed for shuffling the dataset before packing. None or negative means no shuffling.\n\n\npack_len\nint\nNone\nMaximum length of packed computation sequence in token. None / Non-positive means no packing.\n\n\nprompt_template\nstr | dict[str, str] | dart_math.utils.PromptTemplate\nalpaca\nID / File path / PromptTemplate object of prompt template.\n\n\nReturns\ndart_math.train.TokenizedSupervisedDataset | dart_math.train.PackedDataset\n\nDataset ready for input to Trainer, containing the following fields at least: \"input_ids\", \"labels\", and \"attention_mask\".",
+    "crumbs": [
+      "Training"
+    ]
+  },
+  {
+    "objectID": "train.html#sequence-packing",
+    "href": "train.html#sequence-packing",
+    "title": "Training",
+    "section": "Sequence Packing",
+    "text": "Sequence Packing\n\nSequence Packing Accelerates 6-8x than Simple Batching\nSimple batching that pad every data sequence to the maximum training length wastes a lot computation and memory on padding tokens, especially for short data sequences and long maximum training length.\nFor example, if the model maximum training length is 4096 (as in most base models like Mistral-7B and the longest data sequences in some datasets like MATH), and data sequences are ~512 tokens long on average (as in most math SFT datasets), we waste almost 1-1/8=7/8 computation and memory on padding tokens.\nSequence packing can eliminate the waste almost completely, without affecting the training dynamics (for most models nowadays), except for the number of data sequences in one batch .\nIn the example above, we can accelerate about 6-8x with sequence packing.\n\n\nBasic Idea of Sequence Packing\nThe basic idea of sequence packing is\n\nto merge/pack short data sequences into a single conputation sequence as long as the maximum training length to eliminate most watse on padding tokens,\nwhile trying best to not affecting the training dynamics by\n\nmanipulating attention masks to avoid cross-contamination between different data sequences,\nworking with relative positional encoding to avoid the positional information mismatch for the non-first data sequences in the packed computation sequence.\n\n\n\nManipulating Attention Masks to Avoid Cross-Contamination\n\n\n \n\n\nConcretely, when we pack inputs, the attention should be only within individual sequences. For example, assume that we are packing 2 inputs: packed input = [input 1] [input 2]. Tokens from input 1 only attend to tokens from input 1 and tokens from input 2 only attend to tokens from input 2\nExamples of packing 2 input sequences: “good morning my name is John” and “This is a dog”. The first one is the attention matrix of packing with cross-contamination, the second one is the correct attention matrix of packing.\nc.f. https://github.com/MeetKai/functionary/tree/main/functionary/train/packing\n\n\n\nRelative Positinal Encoding Perferctly Works with Sequence Packing\nAt first glance, sequence packing introduces another problem: the positional encodings of the non-first data sequences in one computation sequence are not the same as the vanilla non-packing setting.\nThis is indeed a problem for absolute positional encoding, but practically does not matter for relative positional encoding like RoPE, which is almost the de facto practice nowadays.",
+    "crumbs": [
+      "Training"
+    ]
+  },
+  {
+    "objectID": "train.html#api-reference",
+    "href": "train.html#api-reference",
+    "title": "Training",
+    "section": "API Reference",
+    "text": "API Reference\n\nsource\n\nPackedDataset\n\n PackedDataset\n                (dataset:torch.utils.data.dataset.Dataset|datasets.arrow_d\n                ataset.Dataset, tokenizer:transformers.tokenization_utils.\n                PreTrainedTokenizer, pack_len:int, shuffle_seed:int=42)\n\nPacked dataset containing computation sequences.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ndataset\ntorch.utils.data.dataset.Dataset | datasets.arrow_dataset.Dataset\n\nOriginal tokenized dataset, which should have the following fields at least: \"input_ids\", \"labels\", and \"attention_mask\".\n\n\ntokenizer\nPreTrainedTokenizer\n\n(HF) tokenizer.\n\n\npack_len\nint\n\nMaximum length of packed compuation sequence in token.\n\n\nshuffle_seed\nint\n42\nSeed for shuffling the dataset before packing. None / Negative values mean no shuffling.\n\n\n\n\nsource\n\nPackedDataset.stat\n\n PackedDataset.stat ()\n\nPrint out the statistics of the packed dataset. Original -&gt; Packed: 1. Number of data/computation sequences; 2. Average effective length of compution sequences.\n\nsource\n\n\n\nTokenizedSupervisedDataset\n\n TokenizedSupervisedDataset\n                             (tokenizer:transformers.tokenization_utils.Pr\n                             eTrainedTokenizer,\n                             input_ids:list[torch.Tensor]=None,\n                             labels:list[torch.Tensor]=None,\n                             attention_mask:list[torch.Tensor]=None)\n\nTokenized dataset for supervised fine-tuning.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ntokenizer\nPreTrainedTokenizer\n\n(HF) tokenizer. None for empty dataset.\n\n\ninput_ids\nlist\nNone\nList of input token ID sequences.\n\n\nlabels\nlist\nNone\nList of label sequences.\n\n\nattention_mask\nlist\nNone\nList of attention mask sequences.\n\n\n\n\nsource\n\nTokenizedSupervisedDataset.load_from_raw_dset\n\n TokenizedSupervisedDataset.load_from_raw_dset\n                                                (tokenizer:transformers.to\n                                                kenization_utils.PreTraine\n                                                dTokenizer, data_path:str,\n                                                query_field:str='query',\n                                                resp_field:str='response',\n                                                prompt_template:str|dict[s\n                                                tr,str]|dart_math.utils.Pr\n                                                omptTemplate='alpaca')\n\nLoad a dataset from a file and tokenize it.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ntokenizer\nPreTrainedTokenizer\n\n(HF) tokenizer.\n\n\ndata_path\nstr\n\nDataset ID or path.\n\n\nquery_field\nstr\nquery\nField name for query.\n\n\nresp_field\nstr\nresponse\nField name for response.\n\n\nprompt_template\nstr | dict[str, str] | dart_math.utils.PromptTemplate\nalpaca\nID / File path / PromptTemplate object of prompt template.\n\n\nReturns\nTokenizedSupervisedDataset\n\n\n\n\n\n\nsource\n\n\nTokenizedSupervisedDataset.__getitem__\n\n TokenizedSupervisedDataset.__getitem__ (i:int)\n\nGet a data point.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ni\nint\ndataset[i]\n\n\nReturns\ndict\n{\"input_ids\": input_ids[i], \"labels\": labels[i], \"attention_mask\": attention_mask[i]}\n\n\n\n\nsource\n\n\nTokenizedSupervisedDataset.concat\n\n TokenizedSupervisedDataset.concat\n                                    (datasets:list['TokenizedSupervisedDat\n                                    aset'])\n\nConcatenate TokenizedSupervisedDataset instances to the current dataset. datasets : listTokenizedSupervisedDataset List of tokenized datasets to concatenate. Each dataset should have the following fields at least: \"input_ids\", \"labels\", and \"attention_mask\".\n\nsource\n\n\nTokenizedSupervisedDataset.shuffle\n\n TokenizedSupervisedDataset.shuffle (seed:int=42)\n\nShuffle the dataset.\n\nsource\n\n\nTokenizedSupervisedDataset.pad\n\n TokenizedSupervisedDataset.pad ()\n\nPad the dataset to the same length of the longest data point.",
+    "crumbs": [
+      "Training"
+    ]
+  },
+  {
+    "objectID": "train.html#acknowledgements",
+    "href": "train.html#acknowledgements",
+    "title": "Training",
+    "section": "Acknowledgements",
+    "text": "Acknowledgements\nThanks to https://github.com/MeetKai/functionary/tree/main/functionary/train/packing. The code for sequence packing is largely based on it.",
+    "crumbs": [
+      "Training"
+    ]
+  }
+]
